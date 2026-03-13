@@ -1,0 +1,295 @@
+// =====================================================
+// Portal Web Diskominfo — Database Schema
+// Visualisasi: https://dbdiagram.io
+// Import file ini ke dbdiagram.io untuk melihat diagram
+// =====================================================
+
+Project diskominfo {
+  database_type: 'MySQL'
+  Note: 'Portal Web Pemerintah Kota — Diskominfo'
+}
+
+// ─────────────────────────────────────
+// AUTHENTICATION & RBAC
+// ─────────────────────────────────────
+
+Table users {
+  id bigint [pk, increment]
+  name varchar [not null]
+  email varchar [unique, not null]
+  email_verified_at timestamp [null]
+  password varchar [not null]
+  avatar varchar [null]
+  remember_token varchar [null]
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Pengguna CMS (Admin, Publisher, Author)'
+}
+
+Table roles {
+  id bigint [pk, increment]
+  name varchar [unique, not null, note: 'admin, publisher, author']
+  guard_name varchar [not null, default: 'web']
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Spatie Permission — Daftar Role'
+}
+
+Table permissions {
+  id bigint [pk, increment]
+  name varchar [unique, not null, note: 'news.create, news.publish, dll']
+  guard_name varchar [not null, default: 'web']
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Spatie Permission — Daftar Permission'
+}
+
+Table model_has_roles {
+  role_id bigint [not null]
+  model_type varchar [not null, default: 'App\\Models\\User']
+  model_id bigint [not null]
+
+  indexes {
+    (role_id, model_id, model_type) [pk]
+  }
+
+  Note: 'Pivot: User ↔ Role'
+}
+
+Table role_has_permissions {
+  permission_id bigint [not null]
+  role_id bigint [not null]
+
+  indexes {
+    (permission_id, role_id) [pk]
+  }
+
+  Note: 'Pivot: Role ↔ Permission'
+}
+
+Table model_has_permissions {
+  permission_id bigint [not null]
+  model_type varchar [not null, default: 'App\\Models\\User']
+  model_id bigint [not null]
+
+  indexes {
+    (permission_id, model_id, model_type) [pk]
+  }
+
+  Note: 'Pivot: User ↔ Permission (direct)'
+}
+
+// ─────────────────────────────────────
+// KONTEN: BERITA & PUBLIKASI
+// ─────────────────────────────────────
+
+Table categories {
+  id bigint [pk, increment]
+  name varchar [not null]
+  slug varchar [unique, not null]
+  type varchar [not null, default: 'news', note: 'news | publication']
+  description text [null]
+  sort_order int [default: 0]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (type, sort_order) [name: 'idx_categories_type_sort']
+  }
+
+  Note: 'Kategori untuk Berita & Publikasi'
+}
+
+Table news {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  category_id bigint [null, ref: > categories.id]
+  title varchar [not null]
+  slug varchar [unique, not null]
+  excerpt text [null]
+  body longtext [not null]
+  featured_image varchar [null]
+  status varchar [not null, default: 'draft', note: 'draft | published | archived']
+  published_at timestamp [null]
+  is_featured boolean [default: false]
+  views_count int [default: 0, note: 'Atomic increment']
+  version int [default: 1, note: 'Optimistic locking']
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (status, published_at) [name: 'idx_news_status_published']
+    is_featured [name: 'idx_news_featured']
+  }
+
+  Note: 'Artikel Berita — status workflow: Draft → Published → Archived'
+}
+
+Table tags {
+  id bigint [pk, increment]
+  name varchar [not null]
+  slug varchar [unique, not null]
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Tag untuk Berita (many-to-many)'
+}
+
+Table news_tag {
+  news_id bigint [not null, ref: > news.id]
+  tag_id bigint [not null, ref: > tags.id]
+
+  indexes {
+    (news_id, tag_id) [pk]
+  }
+
+  Note: 'Pivot: News ↔ Tag'
+}
+
+Table publications {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  category_id bigint [null, ref: > categories.id]
+  title varchar [not null]
+  slug varchar [unique, not null]
+  description text [null]
+  file_path varchar [not null]
+  file_type varchar [not null, note: 'pdf, doc, xls']
+  file_size bigint [not null, note: 'Ukuran dalam bytes']
+  status varchar [not null, default: 'draft', note: 'draft | published | archived']
+  published_at timestamp [null]
+  download_count int [default: 0, note: 'Atomic increment']
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (status, published_at) [name: 'idx_publications_status_published']
+  }
+
+  Note: 'Dokumen Publikasi (PDF, DOC, XLS) — dapat diunduh publik'
+}
+
+// ─────────────────────────────────────
+// GALERI
+// ─────────────────────────────────────
+
+Table galleries {
+  id bigint [pk, increment]
+  title varchar [not null]
+  slug varchar [unique, not null]
+  description text [null]
+  is_published boolean [default: false]
+  sort_order int [default: 0]
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Album Galeri Foto/Video'
+}
+
+Table gallery_items {
+  id bigint [pk, increment]
+  gallery_id bigint [not null, ref: > galleries.id]
+  file_path varchar [not null]
+  type varchar [not null, default: 'image', note: 'image | video']
+  caption varchar [null]
+  sort_order int [default: 0]
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Item individual dalam album galeri'
+}
+
+// ─────────────────────────────────────
+// ORGANISASI & PROFIL
+// ─────────────────────────────────────
+
+Table organization_members {
+  id bigint [pk, increment]
+  name varchar [not null]
+  position varchar [not null, note: 'Kepala Dinas, Sekretaris, Kepala Bidang']
+  department varchar [null, note: 'Bidang/Unit kerja']
+  bio text [null]
+  photo varchar [null]
+  parent_id bigint [null, ref: > organization_members.id]
+  sort_order int [default: 0]
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (parent_id, sort_order) [name: 'idx_org_members_parent_sort']
+  }
+
+  Note: 'Struktur Organisasi — self-referencing hierarchy'
+}
+
+// ─────────────────────────────────────
+// KONTAK & FAQ
+// ─────────────────────────────────────
+
+Table contact_messages {
+  id bigint [pk, increment]
+  name varchar [not null]
+  email varchar [not null]
+  subject varchar [not null]
+  message text [not null]
+  status varchar [not null, default: 'unread', note: 'unread | read | responded']
+  admin_notes text [null]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    status [name: 'idx_contact_messages_status']
+  }
+
+  Note: 'Pesan dari form Hubungi Kami'
+}
+
+Table faqs {
+  id bigint [pk, increment]
+  question varchar [not null]
+  answer text [not null]
+  sort_order int [default: 0]
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (is_active, sort_order) [name: 'idx_faqs_active_sort']
+  }
+
+  Note: 'Pertanyaan Populer (FAQ) — halaman Kontak'
+}
+
+// ─────────────────────────────────────
+// PENGATURAN SITUS
+// ─────────────────────────────────────
+
+Table site_settings {
+  id bigint [pk, increment]
+  key varchar [unique, not null, note: 'site_name, address, phone, dll']
+  value text [null]
+  group varchar [not null, default: 'general', note: 'general, contact, social']
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    group [name: 'idx_site_settings_group']
+  }
+
+  Note: 'Key-value store untuk konfigurasi situs'
+}
+
+// ─────────────────────────────────────
+// RELASI (Spatie Permission)
+// ─────────────────────────────────────
+
+Ref: model_has_roles.role_id > roles.id
+Ref: model_has_roles.model_id > users.id
+Ref: role_has_permissions.role_id > roles.id
+Ref: role_has_permissions.permission_id > permissions.id
+Ref: model_has_permissions.permission_id > permissions.id
+Ref: model_has_permissions.model_id > users.id
