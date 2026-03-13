@@ -15,7 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->enum('role', ['admin', 'publisher', 'author'])->default('author');
             $table->timestamp('email_verified_at')->nullable();
+            $table->text('bio')->nullable();
+            $table->string('avatar_url')->nullable();
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
