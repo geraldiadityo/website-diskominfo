@@ -22,6 +22,11 @@ class CategoriesTable
                 TextColumn::make('slug')
                     ->searchable(),
 
+                TextColumn::make('articles_count')
+                    ->counts('articles')
+                    ->label('jumlah artikel')
+                    ->sortable(),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
