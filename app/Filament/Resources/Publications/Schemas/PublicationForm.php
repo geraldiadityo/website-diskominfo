@@ -9,9 +9,11 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class PublicationForm
 {
@@ -58,6 +60,11 @@ class PublicationForm
                                 'application/vnd.ms-excel',
                                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                             ])
+                            ->getUploadedFileNameForStorageUsing(
+                                fn(TemporaryUploadedFile $file, Get $get): string => (string) str(
+                                    Str::slug($get('title') ?? 'publikasi') . '-' . time() . '.' . $file->getClientOriginalExtension()
+                                )
+                            )
                             ->required()
                             ->columnSpanFull(),
 
