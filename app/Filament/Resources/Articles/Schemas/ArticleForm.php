@@ -43,7 +43,7 @@ class ArticleForm
                             ]),
                         Section::make('Meta & Publikasi')
                             ->schema([
-                                FileUpload::make('featured Image')
+                                FileUpload::make('featured_image')
                                     ->image()
                                     ->disk('public')
                                     ->directory('articles')
