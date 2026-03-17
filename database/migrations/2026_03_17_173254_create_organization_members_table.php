@@ -14,8 +14,14 @@ return new class extends Migration
         Schema::create('organization_members', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('position')->comment('Kepala Dinas, Sekretaris, Kepala Bidang dll');
-            $table->string('departement')->nullable()->comment('Unit/Bidang');
+            $table->foreignId('position_id')
+                ->nullable()
+                ->constrained('positions')
+                ->nullOnDelete();
+            $table->foreignId('departement_id')
+                ->nullable()
+                ->constrained('departements')
+                ->nullOnDelete();
             $table->string('bio')->nullable();
             $table->string('photo')->nullable();
             // self-referencing foreign key
