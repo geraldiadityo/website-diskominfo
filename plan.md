@@ -2,6 +2,7 @@
 
 > Dokumen perencanaan arsitektur teknis untuk **Company Profile & Public Portal Website Diskominfo**.
 > Disusun berdasarkan analisis UI Design dari Google Stitch (Project ID: `17826962431898095121`).
+> **Dioptimasi berdasarkan implementasi backend Laravel Filament yang sudah berjalan.**
 
 ---
 
@@ -14,9 +15,9 @@ Aplikasi ini menggunakan arsitektur **monolitik Laravel** dengan pemisahan tangg
 | Ranah | Teknologi | Tanggung Jawab |
 |-------|-----------|----------------|
 | **Frontend (Publik)** | Livewire 3 + Tailwind CSS v4 | Halaman yang diakses masyarakat umum (Beranda, Berita, Publikasi, Profil, Kontak) |
-| **Backend (Admin)** | Laravel Filament 4 | Dasbor CMS untuk manajemen konten (CRUD Berita, Publikasi, Galeri, Organisasi, Kontak) |
-| **Database** | MySQL 8.x | Penyimpanan data relasional |
-| **RBAC** | Spatie Permission 6.x | Manajemen role & permission terintegrasi Filament |
+| **Backend (Admin)** | Laravel Filament 4 | Dasbor CMS untuk manajemen konten (CRUD Berita, Publikasi, Organisasi, Kontak) |
+| **Database** | SQLite (dev) / MySQL 8.x (prod) | Penyimpanan data relasional |
+| **RBAC** | Simple role column pada `users` | Role-based access via kolom `role` (admin, publisher, author) |
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -26,13 +27,16 @@ Aplikasi ini menggunakan arsitektur **monolitik Laravel** dengan pemisahan tangg
 │  │   PUBLIC PORTAL   │    │    ADMIN DASHBOARD     │  │
 │  │   (Livewire 3)    │    │    (Filament 4)        │  │
 │  │                    │    │                        │  │
-│  │  • Homepage        │    │  • NewsResource        │  │
+│  │  • Homepage        │    │  • ArticleResource     │  │
 │  │  • Berita List     │    │  • PublicationResource │  │
-│  │  • Berita Detail   │    │  • GalleryResource     │  │
-│  │  • Publikasi       │    │  • OrganizationResource│  │
-│  │  • Struktur Org    │    │  • ContactResource     │  │
-│  │  • Kontak          │    │  • CategoryResource    │  │
-│  │                    │    │  • TagResource         │  │
+│  │  • Berita Detail   │    │  • OrganizationMember  │  │
+│  │  • Publikasi       │    │  • CategoryResource    │  │
+│  │  • Struktur Org    │    │  • TipeResource        │  │
+│  │  • Kontak          │    │  • TagResource (*)     │  │
+│  │                    │    │  • DepartementResource │  │
+│  │  (*) = belum       │    │  • PositionResource    │  │
+│  │  diimplementasi    │    │  • UserResource        │  │
+│  │                    │    │  • ManageSettings Page │  │
 │  └────────┬───────────┘    └──────────┬─────────────┘  │
 │           │                           │                │
 │           └──────────┬────────────────┘                │
@@ -43,7 +47,7 @@ Aplikasi ini menggunakan arsitektur **monolitik Laravel** dengan pemisahan tangg
 │            └────────┬─────────┘                        │
 │                     ▼                                  │
 │            ┌──────────────────┐                        │
-│            │     MySQL 8.x    │                        │
+│            │ SQLite/MySQL 8.x │                        │
 │            └──────────────────┘                        │
 └─────────────────────────────────────────────────────┘
 ```
@@ -57,11 +61,11 @@ Aplikasi ini menggunakan arsitektur **monolitik Laravel** dengan pemisahan tangg
 | Livewire | 3 | Komponen frontend reaktif |
 | Filament | 4 | Admin panel & CMS |
 | Tailwind CSS | 4 | Utility-first CSS framework |
-| MySQL | 8.x | Database relasional |
-| Spatie Permission | 6.x | RBAC package |
-| Spatie Media Library | 11.x | Manajemen file/gambar |
+| SQLite / MySQL | 3 / 8.x | Database (dev / prod) |
 | Laravel Pint | 1.x | Code formatter |
 | Pest | 4.x | Testing framework |
+
+> **Catatan:** Project ini **tidak** menggunakan Spatie Permission. RBAC dikelola melalui kolom `role` pada tabel `users`.
 
 ---
 
@@ -80,83 +84,92 @@ Komponen yang digunakan di seluruh halaman publik:
 
 ### 2.2 Halaman & Komponen Livewire
 
+> **Status:** Frontend Livewire belum diimplementasi. Saat ini hanya `routes/web.php` dengan welcome view.
+> Seluruh halaman di bawah ini merupakan **rencana implementasi**.
+
 #### Screen 1: Homepage (`/`)
 
 **Route:** `GET /` → `App\Livewire\Pages\HomePage`
 
 | Seksi UI (dari Stitch) | Livewire Component | Deskripsi |
-|-------------------------|--------------------|-----------|
+|-------------------------|--------------------|-----------| 
 | Hero Banner | `HeroSection` (Blade partial) | Judul "Mewujudkan Transformasi Digital Daerah", subtitle, background, widget cuaca, dan quick-link cards (Layanan Publik, Portal E-Gov, Pengumuman) |
 | Profil Pimpinan | `LeaderProfile` (Blade partial) | Foto, nama, jabatan Kepala Dinas, dan kutipan/visi |
-| Berita Terbaru | `LatestNews` (Livewire) | 3 card berita terbaru + link "Lihat Semua" → `/berita` |
-| Publikasi & Dokumen | `LatestPublications` (Blade partial) | 4 card publikasi (nama, tipe file, ukuran) |
+| Berita Terbaru | `LatestNews` (Livewire) | 3 card berita terbaru dari model `Article` + link "Lihat Semua" → `/berita` |
+| Publikasi & Dokumen | `LatestPublications` (Blade partial) | 4 card publikasi (nama, tipe file, ukuran) dari model `Publication` |
 
 #### Screen 2: Berita Terbaru (`/berita`)
 
 **Route:** `GET /berita` → `App\Livewire\Pages\NewsIndex`
 
 | Seksi UI | Livewire Component | Deskripsi |
-|----------|--------------------|-----------|
+|----------|--------------------|-----------| 
 | Page Header | Inline | Judul "Berita Terbaru" + subtitle |
 | Featured Article | Inline | Card besar untuk artikel utama/featured |
-| News Grid | `NewsIndex` (full-page Livewire) | Grid card berita (gambar, kategori badge, judul, excerpt, tanggal). Fitur: filter kategori, search `wire:model.live`, pagination `wire:click` |
+| News Grid | `NewsIndex` (full-page Livewire) | Grid card berita (`Article` model) — gambar, kategori badge, judul, excerpt (dari `content`), tanggal. Fitur: filter kategori, search `wire:model.live`, pagination `wire:click` |
 
 #### Screen 3: Detail Berita (`/berita/{slug}`)
 
-**Route:** `GET /berita/{news:slug}` → `App\Livewire\Pages\NewsDetail`
+**Route:** `GET /berita/{article:slug}` → `App\Livewire\Pages\NewsDetail`
 
 | Seksi UI | Livewire Component | Deskripsi |
-|----------|--------------------|-----------|
-| Article Header | Inline | Judul, author info (nama + avatar), tanggal, estimasi waktu baca |
+|----------|--------------------|-----------| 
+| Article Header | Inline | Judul, author info (nama dari relasi `author`), tanggal, estimasi waktu baca |
 | Featured Image | Inline | Gambar utama artikel (16:9 aspect ratio) |
-| Article Body | Inline | Konten WYSIWYG (prose styling) |
+| Article Body | Inline | Konten WYSIWYG dari kolom `content` (prose styling) |
+| SEO Meta | Inline | Meta title (`seo_title`) & description (`seo_description`) |
 | Sidebar: Berita Terkait | `RelatedNews` (Blade partial) | 3 card berita terkait (berdasarkan kategori) |
-| Sidebar: Tag Populer | `PopularTags` (Blade partial) | Tag cloud: #LiterasiDigital, #Diskominfo, dll |
-| Newsletter | `NewsletterSubscription` (Livewire) | Form email subscription |
+| Sidebar: Tag Populer | `PopularTags` (Blade partial) | Tag cloud dari model `Tag` |
 
 #### Screen 4: Publikasi & Dokumen (`/publikasi`)
 
 **Route:** `GET /publikasi` → `App\Livewire\Pages\PublicationIndex`
 
 | Seksi UI | Livewire Component | Deskripsi |
-|----------|--------------------|-----------|
+|----------|--------------------|-----------| 
 | Page Header | Inline | Judul "Publikasi & Dokumen" + subtitle |
-| Document List | `PublicationIndex` (full-page Livewire) | List/grid dokumen: judul, deskripsi, tipe file (PDF/DOC), ukuran, tombol unduh. Fitur: filter kategori, search, pagination |
+| Document List | `PublicationIndex` (full-page Livewire) | List/grid dokumen: judul, deskripsi, tipe file (`file_type`), ukuran (`file_size`), tipe publikasi (relasi `tipe`), tombol unduh. Fitur: filter tipe, search, pagination |
 
 #### Screen 5: Struktur Organisasi (`/profil/struktur-organisasi`)
 
 **Route:** `GET /profil/struktur-organisasi` → `App\Livewire\Pages\OrganizationStructure`
 
 | Seksi UI | Livewire Component | Deskripsi |
-|----------|--------------------|-----------|
+|----------|--------------------|-----------| 
 | Page Header | Inline | Judul "Struktur Organisasi" + subtitle |
-| Leader Card | Inline | Card besar Kepala Dinas (foto, nama, jabatan, visi) |
-| Hierarchy Chart | Inline | Bagan organisasi: Kepala Dinas → Sekretariat → 4 Bidang (Pengelolaan Informasi, Infrastruktur TI, Persandian & Statistik, E-Government) |
+| Leader Card | Inline | Card besar Kepala Dinas (foto, nama, jabatan dari relasi `position`, departemen dari relasi `departement`) |
+| Hierarchy Chart | Inline | Bagan organisasi menggunakan self-referencing `parent_id` dari model `OrganizationMember` → `children()` relation |
 
 #### Screen 6 & 7: Hubungi Kami (`/kontak`)
 
 **Route:** `GET /kontak` → `App\Livewire\Pages\ContactPage`
 
+> **Status:** Model `ContactMessage` dan `Faq` belum diimplementasi. Perlu dibuat migration, model, dan Filament resource.
+
 | Seksi UI | Livewire Component | Deskripsi |
-|----------|--------------------|-----------|
+|----------|--------------------|-----------| 
 | Page Header | Inline | Judul "Hubungi Kami" + subtitle |
 | Contact Form | `ContactForm` (Livewire) | Form: Nama, Email, Subjek, Pesan + validasi + rate limiting |
-| Contact Info | Blade partial | Alamat, Telepon/Fax, Email, Media Sosial |
+| Contact Info | Blade partial | Alamat, Telepon, Email dari `SiteSetting` model |
 | FAQ Accordion | `FaqSection` (Blade partial, Alpine.js) | Daftar pertanyaan populer dengan expand/collapse |
 
-### 2.3 Filament Resources (Backend CMS)
+### 2.3 Filament Resources (Backend CMS) — Status Implementasi
 
-| Filament Resource | Model | Fitur Utama |
-|-------------------|-------|-------------|
-| `NewsResource` | `News` | CRUD berita, WYSIWYG editor, upload gambar, kategori, tag, status (Draft/Published/Archived), scheduled publication |
-| `PublicationResource` | `Publication` | CRUD publikasi, upload file dokumen, kategori, tipe file |
-| `GalleryResource` | `Gallery` | CRUD galeri foto/video, multiple upload |
-| `OrganizationMemberResource` | `OrganizationMember` | CRUD anggota organisasi, jabatan, hierarki, urutan tampil |
-| `ContactMessageResource` | `ContactMessage` | View & manage pesan masuk (read-only create, mark as read/responded) |
-| `CategoryResource` | `Category` | CRUD kategori untuk berita & publikasi |
-| `TagResource` | `Tag` | CRUD tag untuk berita |
-| `FaqResource` | `Faq` | CRUD FAQ untuk halaman kontak |
-| `SiteSettingResource` | `SiteSetting` | Pengaturan situs: nama, alamat, telepon, email, sosmed, dll |
+| Filament Resource | Model | Navigation Group | Status | Fitur Utama |
+|-------------------|-------|-------------------|--------|-------------|
+| `ArticleResource` | `Article` | Berita | ✅ Sudah Ada | CRUD artikel, RichEditor, upload gambar, kategori, tag, status (`ArticleStatus` enum), SEO fields, role-based filtering |
+| `CategoryResource` | `Category` | Berita | ✅ Sudah Ada | CRUD kategori berita (slug, description) |
+| `PublicationResource` | `Publication` | Publication | ✅ Sudah Ada | CRUD publikasi, upload file, tipe (`Tipe` model), status (`PublicationStatus` enum), auto file_type/file_size |
+| `TipeResource` | `Tipe` | Publication | ✅ Sudah Ada | CRUD tipe publikasi (name, slug) |
+| `TagResource` | `Tag` | — | ⚠️ Inline saja | Tag bisa dibuat inline dari `ArticleForm`. Belum ada dedicated resource |
+| `DepartementResource` | `Departement` | — | ✅ Sudah Ada | CRUD departemen/bidang organisasi |
+| `PositionResource` | `Position` | — | ✅ Sudah Ada | CRUD jabatan organisasi (name, level) |
+| `OrganizationMemberResource` | `OrganizationMember` | — | ✅ Sudah Ada | CRUD anggota organisasi, jabatan (FK), departemen (FK), hierarki (parent_id), foto upload |
+| `UserResource` | `User` | System Management | ✅ Sudah Ada | CRUD user, **hanya akses Admin** (`canAccess()` check) |
+| `ManageSettings` (Page) | `SiteSetting` | System Management | ✅ Sudah Ada | Pengaturan situs (tabs: General/Contact/Social Media), file upload logo/favicon |
+| `ContactMessageResource` | `ContactMessage` | — | ❌ Belum Ada | **Perlu dibuat:** View & manage pesan masuk |
+| `FaqResource` | `Faq` | — | ❌ Belum Ada | **Perlu dibuat:** CRUD FAQ |
+| `GalleryResource` | `Gallery` | — | ❌ Belum Ada | **Perlu dibuat:** CRUD galeri (opsional) |
 
 ---
 
@@ -166,35 +179,49 @@ Komponen yang digunakan di seluruh halaman publik:
 
 ```
 ┌──────────┐     ┌──────────────┐     ┌───────────┐
-│  users   │────<│    news      │>────│categories │
+│  users   │────<│   articles   │>────│categories │
 │          │     │              │     │           │
 │ id       │     │ id           │     │ id        │
-│ name     │     │ user_id (FK) │     │ name      │
+│ name     │     │ author_id(FK)│     │ name      │
 │ email    │     │ category_id  │     │ slug      │
-│ password │     │ title        │     │ type      │
-│          │     │ slug         │     └───────────┘
-└──────┬───┘     │ excerpt      │
-       │         │ body         │     ┌───────────┐
-       │         │ status       │>────│   tags    │
-       │         │ published_at │     │           │
-       │         │ ...          │     │ id        │
-       │         └──────────────┘     │ name      │
+│ password │     │ title        │     │ description│
+│ role     │     │ slug         │     └───────────┘
+└──────┬───┘     │ content      │
+       │         │ status       │     ┌───────────┐
+       │         │ publish_at   │<>───│   tags    │
+       │         │ views        │     │           │
+       │         │ seo_title    │     │ id        │
+       │         │ seo_desc     │     │ name      │
+       │         └──────────────┘     │ slug      │
+       │                              └───────────┘
+       │         ┌──────────────┐
+       │────────<│ publications │     ┌───────────────────┐
+       │         │              │     │ article_tags      │
+       │         │ id           │     │ (pivot)           │
+       │         │ user_id (FK) │     │                   │
+       │         │ tipe_id (FK) │     │ article_id        │
+       │         │ title, slug  │     │ tag_id            │
+       │         │ file_path    │     └───────────────────┘
+       │         │ file_type    │
+       │         │ file_size    │     ┌───────────┐
+       │         │ status       │     │  tipes    │
+       │         │ download_cnt │>────│           │
+       │         └──────────────┘     │ id        │
+       │                              │ name      │
        │                              │ slug      │
-       │         ┌──────────────┐     └───────────┘
-       │────────<│ publications │
-       │         │              │     ┌───────────────────┐
-       │         │ id           │     │ news_tag (pivot)   │
-       │         │ user_id (FK) │     │                    │
-       │         │ category_id  │     │ news_id            │
-       │         │ title        │     │ tag_id             │
-       │         │ ...          │     └───────────────────┘
-       │         └──────────────┘
+       │                              └───────────┘
        │
-       │         ┌─────────────────────┐
-       │         │ model_has_roles     │  (Spatie)
-       │         │ model_has_permissions│
-       │         │ role_has_permissions │
-       │         └─────────────────────┘
+       │         ┌───────────────────────┐
+       │         │ organization_members  │
+       │         │                       │
+       │         │ id                    │
+       │         │ name                  │
+       │         │ position_id ──────>─ positions (id, name, level)
+       │         │ departement_id ────>─ departements (id, name, description)
+       │         │ parent_id (self-ref)  │
+       │         │ bio, photo            │
+       │         │ sort_order, is_active │
+       │         └───────────────────────┘
 ```
 
 ### 3.2 Tabel-Tabel Utama
@@ -207,7 +234,7 @@ Schema::create('users', function (Blueprint $table) {
     $table->string('email')->unique();
     $table->timestamp('email_verified_at')->nullable();
     $table->string('password');
-    $table->string('avatar')->nullable();
+    $table->string('role')->default('author'); -- admin | publisher | author
     $table->rememberToken();
     $table->timestamps();
 });
@@ -219,37 +246,45 @@ Schema::create('categories', function (Blueprint $table) {
     $table->id();
     $table->string('name');
     $table->string('slug')->unique();
-    $table->string('type')->default('news'); -- 'news' | 'publication'
     $table->text('description')->nullable();
-    $table->integer('sort_order')->default(0);
     $table->timestamps();
 
-    $table->index(['type', 'sort_order']);
+    $table->index('slug');
 });
 ```
 
-#### `news`
+> **Catatan:** Berbeda dengan plan awal, `categories` **tidak** memiliki kolom `type` atau `sort_order`. Kategori hanya digunakan untuk artikel (`Article`). Publikasi menggunakan model `Tipe` terpisah.
+
+#### `articles`
 ```sql
-Schema::create('news', function (Blueprint $table) {
+Schema::create('articles', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
     $table->string('title');
     $table->string('slug')->unique();
-    $table->text('excerpt')->nullable();
-    $table->longText('body');
+    $table->longText('content');  -- bukan 'body' atau 'excerpt'
     $table->string('featured_image')->nullable();
-    $table->string('status')->default('draft'); -- draft | published | archived
-    $table->timestamp('published_at')->nullable();
-    $table->boolean('is_featured')->default(false);
-    $table->unsignedInteger('views_count')->default(0);
-    $table->unsignedInteger('version')->default(1); -- optimistic locking
+    $table->foreignId('author_id')->constrained('users')->cascadeOnDelete();
+    $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
+    $table->string('status')->default('draf');
+    $table->string('seo_title')->nullable();
+    $table->text('seo_description')->nullable();
+    $table->timestamp('publish_at')->nullable();  -- bukan 'published_at'
+    $table->unsignedBigInteger('views')->default(0);  -- bukan 'views_count'
     $table->timestamps();
 
-    $table->index(['status', 'published_at']);
-    $table->index('is_featured');
+    $table->index('status');
+    $table->index('title');
 });
 ```
+
+> **Perbedaan penting dari plan awal:**
+> - Tabel bernama `articles` (bukan `news`)
+> - FK `author_id` (bukan `user_id`)
+> - Kolom `content` (bukan `body` + `excerpt`)
+> - Kolom `publish_at` (bukan `published_at`)
+> - Kolom `views` (bukan `views_count`)
+> - Kolom `seo_title` dan `seo_description` (tambahan, tidak di plan awal)
+> - **Tidak ada** kolom `is_featured` dan `version` (optimistic locking)
 
 #### `tags`
 ```sql
@@ -261,58 +296,70 @@ Schema::create('tags', function (Blueprint $table) {
 });
 ```
 
-#### `news_tag` (pivot)
+#### `article_tags` (pivot)
 ```sql
-Schema::create('news_tag', function (Blueprint $table) {
-    $table->foreignId('news_id')->constrained()->cascadeOnDelete();
+Schema::create('article_tags', function (Blueprint $table) {
+    $table->foreignId('article_id')->constrained()->cascadeOnDelete();
     $table->foreignId('tag_id')->constrained()->cascadeOnDelete();
-    $table->primary(['news_id', 'tag_id']);
+    $table->primary(['article_id', 'tag_id']);
 });
 ```
+
+> **Catatan:** Pivot table bernama `article_tags` (bukan `news_tag`). Memiliki model `ArticleTag`.
+
+#### `tipes`
+```sql
+Schema::create('tipes', function (Blueprint $table) {
+    $table->id();
+    $table->string('name');
+    $table->string('slug')->unique();
+    $table->timestamps();
+
+    $table->index('slug');
+});
+```
+
+> **Catatan:** Model `Tipe` menggantikan relasi `category_id` pada `publications`. Ini memisahkan tipe publikasi dari kategori berita.
 
 #### `publications`
 ```sql
 Schema::create('publications', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
+    $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+    $table->foreignId('tipe_id')->constrained('tipes')->cascadeOnDelete();  -- bukan category_id
     $table->string('title');
     $table->string('slug')->unique();
-    $table->text('description')->nullable();
+    $table->string('description');  -- bukan text/nullable
     $table->string('file_path');
-    $table->string('file_type'); -- pdf, doc, xls
-    $table->unsignedBigInteger('file_size'); -- bytes
-    $table->string('status')->default('draft'); -- draft | published | archived
+    $table->string('file_type');
+    $table->bigInteger('file_size');
+    $table->string('status')->default('draf');
     $table->timestamp('published_at')->nullable();
-    $table->unsignedInteger('download_count')->default(0);
+    $table->integer('download_count')->default(0);
     $table->timestamps();
 
-    $table->index(['status', 'published_at']);
+    $table->index(['status', 'published_at'], 'idx_publications_status_published');
 });
 ```
 
-#### `galleries`
+> **Catatan:** `file_type` dan `file_size` diisi otomatis via `booted()` saving event berdasarkan `file_path`.
+
+#### `departements`
 ```sql
-Schema::create('galleries', function (Blueprint $table) {
+Schema::create('departements', function (Blueprint $table) {
     $table->id();
-    $table->string('title');
-    $table->string('slug')->unique();
+    $table->string('name')->unique();
     $table->text('description')->nullable();
-    $table->boolean('is_published')->default(false);
-    $table->integer('sort_order')->default(0);
     $table->timestamps();
 });
 ```
 
-#### `gallery_items`
+#### `positions`
 ```sql
-Schema::create('gallery_items', function (Blueprint $table) {
+Schema::create('positions', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('gallery_id')->constrained()->cascadeOnDelete();
-    $table->string('file_path');
-    $table->string('type')->default('image'); -- image | video
-    $table->string('caption')->nullable();
-    $table->integer('sort_order')->default(0);
+    $table->string('name')->unique();
+    $table->integer('level')->default(0);
     $table->timestamps();
 });
 ```
@@ -322,48 +369,20 @@ Schema::create('gallery_items', function (Blueprint $table) {
 Schema::create('organization_members', function (Blueprint $table) {
     $table->id();
     $table->string('name');
-    $table->string('position'); -- Kepala Dinas, Sekretaris, Kepala Bidang
-    $table->string('department')->nullable(); -- Bidang/Unit
-    $table->text('bio')->nullable();
+    $table->foreignId('position_id')->nullable()->constrained('positions')->nullOnDelete();
+    $table->foreignId('departement_id')->nullable()->constrained('departements')->nullOnDelete();
+    $table->string('bio')->nullable();  -- string bukan text
     $table->string('photo')->nullable();
     $table->foreignId('parent_id')->nullable()->constrained('organization_members')->nullOnDelete();
     $table->integer('sort_order')->default(0);
     $table->boolean('is_active')->default(true);
     $table->timestamps();
 
-    $table->index(['parent_id', 'sort_order']);
+    $table->index(['parent_id', 'sort_order'], 'idx_org_members_parent_sort');
 });
 ```
 
-#### `contact_messages`
-```sql
-Schema::create('contact_messages', function (Blueprint $table) {
-    $table->id();
-    $table->string('name');
-    $table->string('email');
-    $table->string('subject');
-    $table->text('message');
-    $table->string('status')->default('unread'); -- unread | read | responded
-    $table->text('admin_notes')->nullable();
-    $table->timestamps();
-
-    $table->index('status');
-});
-```
-
-#### `faqs`
-```sql
-Schema::create('faqs', function (Blueprint $table) {
-    $table->id();
-    $table->string('question');
-    $table->text('answer');
-    $table->integer('sort_order')->default(0);
-    $table->boolean('is_active')->default(true);
-    $table->timestamps();
-
-    $table->index(['is_active', 'sort_order']);
-});
-```
+> **Perbedaan dari plan awal:** `position` dan `department` bukan kolom string; mereka adalah FK ke tabel terpisah `positions` dan `departements`.
 
 #### `site_settings`
 ```sql
@@ -371,129 +390,162 @@ Schema::create('site_settings', function (Blueprint $table) {
     $table->id();
     $table->string('key')->unique();
     $table->text('value')->nullable();
-    $table->string('group')->default('general');
+    $table->string('group')->default('general');  -- general, contact, social
     $table->timestamps();
 
-    $table->index('group');
+    $table->index('group', 'idx_site_setting_group');
 });
 ```
 
-### 3.3 Spatie Permission Tables
+### 3.3 Tabel yang Belum Ada (Perlu Dibuat)
 
-Tabel yang di-generate otomatis oleh `php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"`:
+Tabel berikut ada di plan awal tetapi **belum diimplementasi**:
 
-- `roles` — Daftar role (Admin, Publisher, Author)
-- `permissions` — Daftar permission
-- `model_has_roles` — Pivot user ↔ role
-- `model_has_permissions` — Pivot user ↔ permission (direct)
-- `role_has_permissions` — Pivot role ↔ permission
+| Tabel | Status | Prioritas |
+|-------|--------|-----------|
+| `contact_messages` | ❌ Belum ada | **Tinggi** — diperlukan untuk halaman Kontak |
+| `faqs` | ❌ Belum ada | **Tinggi** — diperlukan untuk halaman Kontak |
+| `galleries` | ❌ Belum ada | Sedang — opsional, bisa ditambahkan nanti |
+| `gallery_items` | ❌ Belum ada | Sedang — opsional, bisa ditambahkan nanti |
+
+### 3.4 Tabel Spatie Permission — TIDAK DIGUNAKAN
+
+Plan awal mereferensikan Spatie Permission (`roles`, `permissions`, `model_has_roles`, dll.). **Package ini tidak diinstal dan tidak digunakan.** RBAC dikelola melalui kolom sederhana `role` pada tabel `users`.
 
 ---
 
 ## 4. Role-Based Access Control (RBAC) Strategy
 
-### 4.1 Definisi Role & Permission
+### 4.1 Implementasi RBAC — Simple Role Column
 
-| Role | Scope | Deskripsi |
-|------|-------|-----------|
-| **Admin** | Full Access | Akses penuh ke seluruh fitur CMS termasuk manajemen user, pengaturan situs, dan seluruh konten |
-| **Publisher** | News + Publication | Bisa membuat, mengedit, **publish/unpublish**, dan menghapus berita & publikasi milik siapapun |
-| **Author** | News + Publication (own) | Hanya bisa membuat (draft) dan mengedit berita & publikasi **miliknya sendiri** |
-
-### 4.2 Permission Matrix
-
-| Permission | Admin | Publisher | Author |
-|------------|:-----:|:---------:|:------:|
-| `news.view_any` | ✅ | ✅ | ✅ |
-| `news.view` | ✅ | ✅ | ✅ (own) |
-| `news.create` | ✅ | ✅ | ✅ |
-| `news.update` | ✅ | ✅ | ✅ (own) |
-| `news.delete` | ✅ | ✅ | ❌ |
-| `news.publish` | ✅ | ✅ | ❌ |
-| `publication.view_any` | ✅ | ✅ | ✅ |
-| `publication.view` | ✅ | ✅ | ✅ (own) |
-| `publication.create` | ✅ | ✅ | ✅ |
-| `publication.update` | ✅ | ✅ | ✅ (own) |
-| `publication.delete` | ✅ | ✅ | ❌ |
-| `publication.publish` | ✅ | ✅ | ❌ |
-| `gallery.*` | ✅ | ❌ | ❌ |
-| `organization.*` | ✅ | ❌ | ❌ |
-| `faq.*` | ✅ | ❌ | ❌ |
-| `setting.*` | ✅ | ❌ | ❌ |
-| `user.*` | ✅ | ❌ | ❌ |
-| `contact_message.*` | ✅ | ❌ | ❌ |
-
-### 4.3 Policy Implementation
+Berbeda dengan plan awal yang menggunakan Spatie Permission, project ini menggunakan **kolom `role`** pada model `User`:
 
 ```php
-// app/Policies/NewsPolicy.php
-class NewsPolicy
+// app/Models/User.php
+class User extends Authenticatable implements FilamentUser
 {
-    public function update(User $user, News $news): bool
-    {
-        if ($user->hasRole('Admin') || $user->hasRole('Publisher')) {
-            return true;
-        }
+    protected $fillable = ['name', 'email', 'password', 'role'];
 
-        // Author hanya bisa edit miliknya sendiri
-        return $user->id === $news->user_id;
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return in_array($this->role, ['admin', 'publisher', 'author']);
     }
 
-    public function publish(User $user, News $news): bool
+    public function isAdmin(): bool
     {
-        return $user->hasAnyRole(['Admin', 'Publisher']);
-    }
-
-    public function delete(User $user, News $news): bool
-    {
-        return $user->hasAnyRole(['Admin', 'Publisher']);
+        return $this->role === 'admin';
     }
 }
 ```
 
-### 4.4 Alur Kerja Konten
+### 4.2 Definisi Role
+
+| Role | Scope | Deskripsi |
+|------|-------|-----------|
+| **admin** | Full Access | Akses penuh ke seluruh fitur CMS termasuk manajemen user dan pengaturan situs |
+| **publisher** | Artikel + Publikasi | Bisa membuat, mengedit, publish/unpublish artikel & publikasi |
+| **author** | Artikel + Publikasi (own) | Bisa membuat (draft) dan mengedit artikel miliknya sendiri. **Tidak bisa** mengubah status ke `publish` atau `archived` |
+
+### 4.3 Access Control Implementation (Sudah Ada)
+
+#### Filament Resource Level
+
+```php
+// UserResource — hanya admin
+public static function canAccess(): bool
+{
+    return Auth::user()?->role === 'admin';
+}
+```
+
+#### Query Scoping — Author Only Sees Own Articles
+
+```php
+// ArticlesTable.php
+->modifyQueryUsing(function (Builder $query) {
+    if (Auth::user()->role === 'author') {
+        return $query->where('author_id', Auth::id());
+    }
+    return $query;
+})
+```
+
+#### Form Level — Disable Publish/Archive untuk Author
+
+```php
+// ArticleForm.php
+Select::make('status')
+    ->options(ArticleStatus::class)
+    ->required()
+    ->disableOptionWhen(fn(string $value): bool =>
+        Auth::user()->role === 'author' &&
+        in_array($value, [ArticleStatus::PUBLISH->value, ArticleStatus::ARCHIVED->value])
+    ),
+```
+
+### 4.4 Alur Kerja Konten (Article Status Workflow)
+
+`ArticleStatus` enum memiliki **5 status** (lebih kaya dari plan awal yang hanya 3):
 
 ```
-Author membuat draft
+Author membuat artikel
        │
        ▼
-  [Status: DRAFT]
+  [Status: DRAF]
        │
        ▼
-Publisher/Admin review
-       │
-       ├── Approve → [Status: PUBLISHED] + set published_at
-       │
-       └── Reject → kembali ke Author (tetap DRAFT)
+Author submit untuk review
        │
        ▼
-Publisher/Admin bisa unpublish
+  [Status: PENDING_REVIEW]
+       │
+       ├── Publisher/Admin approve → [Status: PUBLISH]
+       │
+       └── Publisher/Admin minta revisi → [Status: CHANGES_REQUESTED]
+       │                                         │
+       │                                         ▼
+       │                                  Author revisi → kembali ke PENDING_REVIEW
+       │
+       ▼
+  Publisher/Admin bisa arsipkan
        │
        ▼
   [Status: ARCHIVED]
 ```
 
-### 4.5 Filament Integration
-
-Integrasi RBAC ke Filament menggunakan `Filament Shield` atau manual policy check:
+### 4.5 Article Status Enum (Sudah Diimplementasi)
 
 ```php
-// app/Filament/Resources/NewsResource.php
-class NewsResource extends Resource
+// app/Enums/ArticleStatus.php
+enum ArticleStatus: string implements HasLabel, HasColor
 {
-    public static function getEloquentQuery(): Builder
-    {
-        $query = parent::getEloquentQuery();
-
-        // Author hanya melihat artikelnya sendiri
-        if (auth()->user()->hasRole('Author')) {
-            $query->where('user_id', auth()->id());
-        }
-
-        return $query;
-    }
+    case DRAF = 'draf';
+    case PENDING_REVIEW = 'pending_review';
+    case CHANGES_REQUESTED = 'change_requested';
+    case PUBLISH = 'publish';
+    case ARCHIVED = 'archived';
 }
 ```
+
+### 4.6 Publication Status Enum (Sudah Diimplementasi)
+
+```php
+// app/Enums/PublicationStatus.php
+enum PublicationStatus: string implements HasLabel, HasColor
+{
+    case DRAF = 'draf';
+    case PUBLISHED = 'published';
+    case ARCHIVED = 'archived';
+}
+```
+
+### 4.7 Yang Belum Diimplementasi
+
+| Fitur | Status | Catatan |
+|-------|--------|---------|
+| Policy classes (`ArticlePolicy`, `PublicationPolicy`) | ❌ Belum ada | Saat ini hanya query filter dan form-level restriction |
+| Middleware authorization | ❌ Belum ada | Perlu ditambahkan untuk route publik yang butuh auth |
+| Role-based navigation visibility | ⚠️ Partial | Hanya `UserResource` yang ada `canAccess()` |
 
 ---
 
@@ -501,289 +553,126 @@ class NewsResource extends Resource
 
 ### 5.1 XSS Prevention
 
-**Risiko utama:** Input WYSIWYG (body berita/publikasi) mengandung HTML mentah.
+**Risiko utama:** Input RichEditor (content artikel) mengandung HTML mentah.
 
-| Strategi | Implementasi |
-|----------|-------------|
-| **Sanitasi Input** | Gunakan `HTMLPurifier` via package `mews/purifier` untuk membersihkan HTML dari editor WYSIWYG sebelum disimpan ke database |
-| **Whitelist Tag** | Izinkan hanya tag aman: `<p>`, `<h2-h6>`, `<strong>`, `<em>`, `<ul>`, `<ol>`, `<li>`, `<a>`, `<img>`, `<blockquote>`, `<table>` |
-| **Output Escaping** | Untuk field non-HTML, gunakan `{{ }}` (auto-escape). Untuk body artikel, gunakan `{!! $news->body !!}` hanya setelah sanitasi |
-| **CSP Headers** | Terapkan Content Security Policy untuk mencegah inline script injection |
+| Strategi | Status | Implementasi |
+|----------|--------|-------------|
+| **Sanitasi Input** | ❌ Belum ada | Perlu `mews/purifier` untuk membersihkan HTML dari RichEditor |
+| **Output Escaping** | Rencana | Untuk `content`, gunakan `{!! $article->content !!}` hanya setelah sanitasi |
+| **CSP Headers** | ❌ Belum ada | Perlu ditambahkan |
+
+### 5.2 File Upload — Sudah Diimplementasi
+
+Model `Article`, `Publication`, dan `OrganizationMember` sudah memiliki **booted events** untuk:
+
+- **Deleting:** Hapus file dari storage saat record dihapus
+- **Updating:** Hapus file lama dari storage saat file di-replace
+- **Saving (Publication):** Auto-detect `file_type` dan `file_size` dari `file_path`
 
 ```php
-// app/Casts/SanitizedHtml.php
-class SanitizedHtml implements CastsAttributes
+// Contoh dari Article model
+protected static function booted()
 {
-    public function set(Model $model, string $key, mixed $value, array $attributes): string
-    {
-        return Purifier::clean($value, 'article');
-    }
+    static::deleting(function (Article $article) {
+        if ($article->featured_image && Storage::disk('public')->exists($article->featured_image)) {
+            Storage::disk('public')->delete($article->featured_image);
+        }
+    });
 }
 ```
 
-### 5.2 SQL Injection Prevention
+### 5.3 Mass Assignment
 
-| Strategi | Implementasi |
-|----------|-------------|
-| **Eloquent ORM** | Selalu gunakan Eloquent query builder, hindari raw query |
-| **Parameter Binding** | Jika harus raw query, selalu gunakan parameter binding `DB::select('...?', [$param])` |
-| **Validation** | Validasi semua input di Form Request sebelum menyentuh database |
+> ⚠️ **Perhatian:** Model `Article` dan `Tag` memiliki `protected $guarded = []` bersamaan dengan `$fillable`. Ini redundant dan `$guarded = []` mem-bypass `$fillable`. Sebaiknya hapus `$guarded = []`.
 
-### 5.3 Mass Assignment Protection
+### 5.4 Rate Limiting (Belum Diimplementasi)
 
 ```php
-// Setiap model WAJIB mendefinisikan $fillable
-class News extends Model
-{
-    protected $fillable = [
-        'title',
-        'slug',
-        'excerpt',
-        'body',
-        'featured_image',
-        'category_id',
-        'status',
-        'published_at',
-        'is_featured',
-    ];
-    // JANGAN pernah: protected $guarded = [];
-}
-```
-
-### 5.4 Rate Limiting
-
-```php
-// bootstrap/app.php
-->withMiddleware(function (Middleware $middleware) {
-    $middleware->throttleApi('60,1'); // API: 60 requests/minute
-})
-
-// routes/web.php — Rate limit spesifik
+// Rencana untuk routes/web.php
 Route::post('/kontak', ContactForm::class)
     ->middleware('throttle:5,1'); // 5 submit per menit
-
-Route::get('/berita', NewsIndex::class)
-    ->middleware('throttle:30,1'); // 30 requests per menit untuk search
 ```
 
-### 5.5 File Upload Security
+### 5.5 File Upload Validation (via Filament Form)
 
 ```php
-// Validasi file upload
-$rules = [
-    'featured_image' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-    'document'       => ['file', 'mimes:pdf,doc,docx,xls,xlsx', 'max:20480'],
-];
+// Sudah diimplementasi di ArticleForm
+FileUpload::make('featured_image')
+    ->image()
+    ->disk('public')
+    ->directory('articles')
+    ->preserveFilenames()
+    ->imageEditor(),
 ```
 
 ---
 
-## 6. Performance & Potential Issues (CRITICAL)
+## 6. Performance & Potential Issues
 
-### 6.1 N+1 Query Problem
+### 6.1 N+1 Query Problem — Ditangani
 
-#### Problem Area: Halaman Berita (`NewsIndex`)
-
-Menampilkan daftar berita beserta **kategori** dan **penulis** → tanpa eager loading akan menghasilkan N+1 query.
+Eager loading **sudah diimplementasi** di `ArticlesTable`:
 
 ```php
-// ❌ BURUK — N+1 Problem
-$news = News::where('status', 'published')->get();
-// Setiap iterasi: SELECT * FROM categories WHERE id = ?
-// Setiap iterasi: SELECT * FROM users WHERE id = ?
-
-// ✅ BENAR — Eager Loading
-$news = News::query()
-    ->with(['category:id,name,slug', 'author:id,name,avatar'])
-    ->where('status', 'published')
-    ->orderByDesc('published_at')
-    ->paginate(9);
+// app/Filament/Resources/Articles/Tables/ArticlesTable.php
+->modifyQueryUsing(fn(Builder $query) => $query->with('author', 'category', 'tags'))
 ```
 
-#### Problem Area: Detail Berita (`NewsDetail`)
+#### Perlu ditambahkan untuk Frontend Livewire:
 
 ```php
-// ✅ Eager load relasi yang dibutuhkan
-$news = News::query()
-    ->with([
-        'category:id,name,slug',
-        'author:id,name,avatar',
-        'tags:id,name,slug',
-    ])
-    ->where('slug', $slug)
-    ->where('status', 'published')
-    ->firstOrFail();
-
-// Berita terkait — query terpisah, bukan N+1
-$relatedNews = News::query()
-    ->with(['category:id,name,slug'])
-    ->where('category_id', $news->category_id)
-    ->where('id', '!=', $news->id)
-    ->where('status', 'published')
-    ->latest('published_at')
-    ->limit(3)
-    ->get();
-```
-
-#### Problem Area: Homepage
-
-```php
-// ✅ Semua data di-load dengan eager loading
-$latestNews = News::query()
+// Homepage — load artikel terbaru
+$latestArticles = Article::query()
     ->with(['category:id,name,slug', 'author:id,name'])
-    ->where('status', 'published')
-    ->latest('published_at')
+    ->where('status', ArticleStatus::PUBLISH->value)
+    ->latest('publish_at')
     ->limit(3)
     ->get();
 
+// Publikasi terbaru
 $latestPublications = Publication::query()
-    ->with(['category:id,name'])
-    ->where('status', 'published')
+    ->with(['tipe:id,name'])  // bukan category
+    ->where('status', PublicationStatus::PUBLISHED->value)
     ->latest('published_at')
     ->limit(4)
     ->get();
 ```
 
-#### Debugging: Preventive Measures
+### 6.2 Model::preventLazyLoading (Belum)
 
 ```php
-// app/Providers/AppServiceProvider.php
+// Perlu ditambahkan di AppServiceProvider
 public function boot(): void
 {
-    // Di environment non-production, tangkap lazy loading
     Model::preventLazyLoading(! app()->isProduction());
 }
 ```
 
-### 6.2 Race Condition: Concurrent Publish/Unpublish
-
-**Skenario:** Dua Publisher secara bersamaan mengubah status publish sebuah artikel.
-
-#### Solusi: Optimistic Locking
-
-```php
-// Model News sudah memiliki kolom `version`
-
-// app/Actions/PublishNewsAction.php
-class PublishNewsAction
-{
-    public function execute(News $news): bool
-    {
-        $affected = News::query()
-            ->where('id', $news->id)
-            ->where('version', $news->version) // Check versi saat ini
-            ->update([
-                'status' => 'published',
-                'published_at' => now(),
-                'version' => $news->version + 1,
-            ]);
-
-        if ($affected === 0) {
-            // Versi sudah berubah — ada orang lain yang mengubah
-            throw new StaleModelException(
-                'Artikel ini telah diubah oleh pengguna lain. Silakan muat ulang halaman.'
-            );
-        }
-
-        return true;
-    }
-}
-```
-
-#### Filament Integration
-
-```php
-// Pada Filament Resource, tampilkan notifikasi jika terjadi conflict
-// Dengan menangkap StaleModelException di action handler
-```
-
 ### 6.3 Race Condition: Download Counter
 
-**Skenario:** Banyak user men-download file publikasi secara bersamaan.
-
 ```php
-// ✅ BENAR — Atomic increment, tidak baca-lalu-tulis
+// ✅ BENAR — Atomic increment
 Publication::query()
     ->where('id', $publication->id)
     ->increment('download_count');
-
-// ❌ BURUK — Race condition
-$pub = Publication::find($id);
-$pub->download_count = $pub->download_count + 1;
-$pub->save();
 ```
 
 ### 6.4 Caching Strategy
 
-Karena portal pemerintah bersifat **read-heavy** dengan frekuensi update konten yang rendah, caching sangat efektif.
+**Sudah Diimplementasi:**
+
+| Data | Implementasi | Invalidation |
+|------|-------------|--------------|
+| Site Settings | `Cache::rememberForever()` per key | Event-driven (`saved`/`deleted` on `SiteSetting`) |
+
+**Belum Diimplementasi (Rencana):**
 
 | Data | Cache Driver | TTL | Invalidation |
 |------|-------------|-----|-------------|
-| Homepage (latest news + publications) | File | 10 menit | Event-driven saat konten baru di-publish |
+| Homepage (latest articles + publications) | File | 10 menit | Observer saat konten di-publish |
 | Daftar Kategori | File | 60 menit | Saat kategori di-CRUD |
 | Struktur Organisasi | File | 24 jam | Saat data organisasi diubah |
-| FAQ | File | 24 jam | Saat FAQ di-CRUD |
-| Site Settings | File | 24 jam | Saat settings diubah |
-| Single News Article | File | 30 menit | Saat artikel di-update |
-
-#### Implementasi
-
-```php
-// Contoh caching di Homepage
-class HomePage extends Component
-{
-    public function render(): View
-    {
-        return view('livewire.pages.home-page', [
-            'latestNews' => Cache::remember('homepage.latest_news', 600, function () {
-                return News::query()
-                    ->with(['category:id,name,slug', 'author:id,name'])
-                    ->where('status', 'published')
-                    ->latest('published_at')
-                    ->limit(3)
-                    ->get();
-            }),
-            'latestPublications' => Cache::remember('homepage.latest_publications', 600, function () {
-                return Publication::query()
-                    ->with(['category:id,name'])
-                    ->where('status', 'published')
-                    ->latest('published_at')
-                    ->limit(4)
-                    ->get();
-            }),
-        ]);
-    }
-}
-```
-
-#### Cache Invalidation (Event-Driven)
-
-```php
-// app/Observers/NewsObserver.php
-class NewsObserver
-{
-    public function saved(News $news): void
-    {
-        Cache::forget('homepage.latest_news');
-        Cache::forget("news.detail.{$news->slug}");
-    }
-
-    public function deleted(News $news): void
-    {
-        Cache::forget('homepage.latest_news');
-        Cache::forget("news.detail.{$news->slug}");
-    }
-}
-```
-
-#### Cache Driver
-
-Untuk VPS dengan aaPanel, gunakan **File cache** (default Laravel) karena:
-- Tidak perlu instalasi tambahan (Redis/Memcached)
-- Cukup performant untuk skala portal pemerintah kota
-- Mudah di-manage (clear cache = hapus folder)
-
-Jika traffic tinggi di kemudian hari, bisa upgrade ke Redis tanpa perubahan kode (hanya ubah `CACHE_DRIVER=redis` di `.env`).
+| Single Article | File | 30 menit | Saat artikel di-update |
 
 ---
 
@@ -884,40 +773,7 @@ npm run build
 * * * * * cd /www/wwwroot/diskominfo-website && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-**Scheduled tasks yang diperlukan:**
-
-```php
-// routes/console.php
-Schedule::command('news:publish-scheduled')
-    ->everyMinute()
-    ->description('Publish artikel yang dijadwalkan');
-
-Schedule::command('cache:prune-stale-tags')
-    ->hourly()
-    ->description('Bersihkan cache tag yang expired');
-```
-
-### 7.5 Queue Worker (Opsional, via Supervisor)
-
-Jika menggunakan queue untuk email notification atau heavy processing:
-
-```ini
-# /etc/supervisor/conf.d/diskominfo-worker.conf
-[program:diskominfo-worker]
-process_name=%(program_name)s_%(process_num)02d
-command=php /www/wwwroot/diskominfo-website/artisan queue:work --sleep=3 --tries=3 --max-time=3600
-autostart=true
-autorestart=true
-stopasgroup=true
-killasgroup=true
-user=www
-numprocs=2
-redirect_stderr=true
-stdout_logfile=/www/wwwroot/diskominfo-website/storage/logs/worker.log
-stopwaitsecs=3600
-```
-
-### 7.6 Environment Variables Checklist (`.env`)
+### 7.5 Environment Variables Checklist (`.env`)
 
 ```env
 APP_NAME="Diskominfo"
@@ -934,7 +790,7 @@ DB_PASSWORD=<strong-password>
 
 CACHE_STORE=file
 SESSION_DRIVER=file
-QUEUE_CONNECTION=database  # atau sync jika tidak pakai queue
+QUEUE_CONNECTION=sync
 
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.example.go.id
@@ -946,15 +802,14 @@ MAIL_ENCRYPTION=tls
 FILAMENT_PATH=admin
 ```
 
-### 7.7 Post-Deployment Steps
+### 7.6 Post-Deployment Steps
 
 ```bash
 # 1. Migrasi database
 php artisan migrate --force
 
-# 2. Seed data awal (roles, permissions, admin user)
-php artisan db:seed --class=RolePermissionSeeder
-php artisan db:seed --class=AdminUserSeeder
+# 2. Seed admin user
+php artisan db:seed --class=AdminSeeder
 
 # 3. Storage symlink
 php artisan storage:link
@@ -975,60 +830,86 @@ chmod -R 775 storage bootstrap/cache
 
 ---
 
-## Lampiran: File & Folder Structure
+## Lampiran A: File & Folder Structure (Aktual)
 
 ```
 app/
-├── Actions/
-│   └── PublishNewsAction.php
-├── Casts/
-│   └── SanitizedHtml.php
+├── Enums/
+│   ├── ArticleStatus.php            ✅ (5 status: draf, pending_review, change_requested, publish, archived)
+│   └── PublicationStatus.php        ✅ (3 status: draf, published, archived)
 ├── Filament/
-│   └── Resources/
-│       ├── NewsResource.php
-│       ├── PublicationResource.php
-│       ├── GalleryResource.php
-│       ├── OrganizationMemberResource.php
-│       ├── ContactMessageResource.php
-│       ├── CategoryResource.php
-│       ├── TagResource.php
-│       ├── FaqResource.php
-│       └── SiteSettingResource.php
-├── Http/
-│   └── Controllers/
-│       └── PublicationDownloadController.php
-├── Livewire/
 │   ├── Pages/
-│   │   ├── HomePage.php
-│   │   ├── NewsIndex.php
-│   │   ├── NewsDetail.php
-│   │   ├── PublicationIndex.php
-│   │   ├── OrganizationStructure.php
-│   │   └── ContactPage.php
-│   └── Components/
-│       ├── LatestNews.php
-│       ├── ContactForm.php
-│       └── NewsletterSubscription.php
+│   │   └── ManageSettings.php       ✅ (Site Settings Page)
+│   └── Resources/
+│       ├── Articles/                ✅ (ArticleResource + Pages + Schemas + Tables)
+│       ├── Categories/              ✅
+│       ├── Departements/            ✅
+│       ├── OrganizationMembers/     ✅
+│       ├── Positions/               ✅
+│       ├── Publications/            ✅ (PublicationResource + Pages + Schemas + Tables)
+│       ├── Tipes/                   ✅
+│       └── Users/                   ✅ (Admin only)
+├── Http/
+│   └── Controllers/                 (kosong)
 ├── Models/
-│   ├── User.php
-│   ├── News.php
-│   ├── Category.php
-│   ├── Tag.php
-│   ├── Publication.php
-│   ├── Gallery.php
-│   ├── GalleryItem.php
-│   ├── OrganizationMember.php
-│   ├── ContactMessage.php
-│   ├── Faq.php
-│   └── SiteSetting.php
-├── Observers/
-│   ├── NewsObserver.php
-│   └── PublicationObserver.php
-├── Policies/
-│   ├── NewsPolicy.php
-│   └── PublicationPolicy.php
+│   ├── Article.php                  ✅
+│   ├── ArticleTag.php               ✅ (pivot model)
+│   ├── Category.php                 ✅
+│   ├── Departement.php              ✅
+│   ├── OrganizationMember.php       ✅
+│   ├── Position.php                 ✅
+│   ├── Publication.php              ✅
+│   ├── SiteSetting.php              ✅ (with caching)
+│   ├── Tag.php                      ✅
+│   ├── Tipe.php                     ✅
+│   └── User.php                     ✅ (FilamentUser, simple role)
 └── Providers/
     └── AppServiceProvider.php
+
+database/
+├── migrations/
+│   ├── 0001_01_01_000000_create_users_table.php
+│   ├── 0001_01_01_000001_create_cache_table.php
+│   ├── 0001_01_01_000002_create_jobs_table.php
+│   ├── 2026_03_13_153307_create_categories_table.php
+│   ├── 2026_03_14_042859_create_articles_table.php
+│   ├── 2026_03_15_024737_create_tags_table.php
+│   ├── 2026_03_15_025210_create_article_tags_table.php
+│   ├── 2026_03_16_014956_create_tipes_table.php
+│   ├── 2026_03_16_021716_create_publications_table.php
+│   ├── 2026_03_17_173051_create_departements_table.php
+│   ├── 2026_03_17_173253_create_positions_table.php
+│   ├── 2026_03_17_173254_create_organization_members_table.php
+│   └── 2026_03_27_022619_create_site_settings_table.php
+├── factories/
+│   └── UserFactory.php
+└── seeders/
+    ├── AdminSeeder.php
+    └── DatabaseSeeder.php
+
+resources/views/
+└── (frontend belum diimplementasi — only welcome.blade.php)
+
+routes/
+├── web.php           (hanya '/' → welcome view)
+└── console.php
+```
+
+## Lampiran B: Rencana Frontend Livewire (Belum Diimplementasi)
+
+```
+app/Livewire/                            (belum ada)
+├── Pages/
+│   ├── HomePage.php
+│   ├── NewsIndex.php
+│   ├── NewsDetail.php
+│   ├── PublicationIndex.php
+│   ├── OrganizationStructure.php
+│   └── ContactPage.php
+└── Components/
+    ├── LatestNews.php
+    ├── ContactForm.php
+    └── NewsletterSubscription.php
 
 resources/views/
 ├── components/
@@ -1045,21 +926,49 @@ resources/views/
         ├── publication-index.blade.php
         ├── organization-structure.blade.php
         └── contact-page.blade.php
-
-database/
-├── migrations/
-│   ├── xxxx_create_categories_table.php
-│   ├── xxxx_create_news_table.php
-│   ├── xxxx_create_tags_table.php
-│   ├── xxxx_create_news_tag_table.php
-│   ├── xxxx_create_publications_table.php
-│   ├── xxxx_create_galleries_table.php
-│   ├── xxxx_create_gallery_items_table.php
-│   ├── xxxx_create_organization_members_table.php
-│   ├── xxxx_create_contact_messages_table.php
-│   ├── xxxx_create_faqs_table.php
-│   └── xxxx_create_site_settings_table.php
-└── seeders/
-    ├── RolePermissionSeeder.php
-    └── AdminUserSeeder.php
 ```
+
+## Lampiran C: Backlog — Fitur yang Perlu Ditambahkan
+
+| # | Fitur | Prioritas | Estimasi |
+|---|-------|-----------|----------|
+| 1 | Migration `contact_messages` | Tinggi | 1 jam |
+| 2 | Model `ContactMessage` + Filament Resource | Tinggi | 2 jam |
+| 3 | Migration `faqs` | Tinggi | 1 jam |
+| 4 | Model `Faq` + Filament Resource | Tinggi | 2 jam |
+| 5 | Hapus `$guarded = []` dari `Article` dan `Tag` | Tinggi | 5 menit |
+| 6 | `Model::preventLazyLoading()` di `AppServiceProvider` | Sedang | 5 menit |
+| 7 | Policy classes (`ArticlePolicy`, `PublicationPolicy`) | Sedang | 3 jam |
+| 8 | Frontend Livewire (semua halaman publik) | Tinggi | 3-5 hari |
+| 9 | XSS sanitasi (`mews/purifier`) | Sedang | 2 jam |
+| 10 | Gallery system (migration, model, resource) | Rendah | 4 jam |
+| 11 | Newsletter subscription | Rendah | 3 jam |
+| 12 | `is_featured` kolom pada articles (jika dibutuhkan) | Rendah | 1 jam |
+| 13 | Caching layer untuk frontend | Sedang | 3 jam |
+| 14 | `canAccess()` pada seluruh Filament Resources | Sedang | 1 jam |
+
+## Lampiran D: Perbedaan Utama Plan Awal vs Implementasi Aktual
+
+| Aspek | Plan Awal | Implementasi Aktual |
+|-------|-----------|---------------------|
+| **Model Berita** | `News` | `Article` |
+| **Kolom konten** | `body` + `excerpt` | `content` (satu kolom) |
+| **FK penulis** | `user_id` | `author_id` |
+| **Kolom tanggal terbit** | `published_at` | `publish_at` |
+| **Kolom views** | `views_count` | `views` |
+| **Featured flag** | `is_featured` | Tidak ada |
+| **Optimistic locking** | `version` column | Tidak ada |
+| **SEO fields** | Tidak ada | `seo_title`, `seo_description` |
+| **Status artikel** | 3 (draft, published, archived) | 5 (draf, pending_review, change_requested, publish, archived) |
+| **Pivot table** | `news_tag` | `article_tags` |
+| **RBAC** | Spatie Permission 6.x | Simple `role` column |
+| **Publikasi FK** | `category_id` | `tipe_id` (FK ke `tipes`) |
+| **Organisasi position** | String column `position` | FK `position_id` ke `positions` table |
+| **Organisasi department** | String column `department` | FK `departement_id` ke `departements` table |
+| **Kategori `type`** | `type` column (news/publication) | Tidak ada — hanya untuk articles |
+| **Filament resource** | `SiteSettingResource` | `ManageSettings` Page |
+| **Galeri** | `Gallery` + `GalleryItem` models | Belum ada |
+| **Kontak** | `ContactMessage` model | Belum ada |
+| **FAQ** | `Faq` model | Belum ada |
+| **Resource structure** | Flat (`Resources/NewsResource.php`) | Nested (`Resources/Articles/ArticleResource.php` + subdirectories) |
+

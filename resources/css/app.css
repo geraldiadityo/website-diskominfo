@@ -6,6 +6,230 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'Public Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    --color-primary-50: oklch(0.97 0.014 254.6);
+    --color-primary-100: oklch(0.93 0.032 255.6);
+    --color-primary-200: oklch(0.88 0.059 254.1);
+    --color-primary-300: oklch(0.81 0.105 251.8);
+    --color-primary-400: oklch(0.71 0.165 254.6);
+    --color-primary-500: oklch(0.55 0.22 260);
+    --color-primary-600: oklch(0.47 0.24 262);
+    --color-primary-700: oklch(0.42 0.22 264);
+    --color-primary-800: oklch(0.37 0.19 265);
+    --color-primary-900: oklch(0.32 0.15 265);
+    --color-primary-950: oklch(0.24 0.09 268);
+}
+
+/* ──────────────────────────────────────────
+   Entrance Animations
+   ────────────────────────────────────────── */
+
+/* Keyframes */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-40px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleUp {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Animation utility classes */
+.animate-fade-in {
+    animation: fadeIn 0.6s ease-out both;
+}
+
+.animate-slide-down {
+    animation: slideDown 0.5s ease-out both;
+}
+
+.animate-slide-up {
+    animation: slideUp 0.6s ease-out both;
+}
+
+.animate-slide-in-left {
+    animation: slideInLeft 0.6s ease-out both;
+}
+
+.animate-slide-in-right {
+    animation: slideInRight 0.6s ease-out both;
+}
+
+.animate-scale-up {
+    animation: scaleUp 0.5s ease-out both;
+}
+
+/* Staggered delay utilities */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-600 { animation-delay: 0.6s; }
+.delay-700 { animation-delay: 0.7s; }
+
+/* Scroll-triggered animations: hidden until visible */
+.animate-on-scroll {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+}
+
+.animate-on-scroll.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Optional: stagger children with transition-delay */
+.stagger-children > .animate-on-scroll:nth-child(1) { transition-delay: 0.05s; }
+.stagger-children > .animate-on-scroll:nth-child(2) { transition-delay: 0.1s; }
+.stagger-children > .animate-on-scroll:nth-child(3) { transition-delay: 0.15s; }
+.stagger-children > .animate-on-scroll:nth-child(4) { transition-delay: 0.2s; }
+.stagger-children > .animate-on-scroll:nth-child(5) { transition-delay: 0.25s; }
+.stagger-children > .animate-on-scroll:nth-child(6) { transition-delay: 0.3s; }
+.stagger-children > .animate-on-scroll:nth-child(7) { transition-delay: 0.35s; }
+.stagger-children > .animate-on-scroll:nth-child(8) { transition-delay: 0.4s; }
+.stagger-children > .animate-on-scroll:nth-child(9) { transition-delay: 0.45s; }
+
+/* Hero gradient shimmer accent line */
+.hero-shimmer::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    .animate-fade-in,
+    .animate-slide-down,
+    .animate-slide-up,
+    .animate-slide-in-left,
+    .animate-slide-in-right,
+    .animate-scale-up {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+    .animate-on-scroll {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+    }
+}
+
+/* Prose styles for article content */
+.prose-article {
+    line-height: 1.8;
+    color: #334155;
+}
+
+.prose-article h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: #0f172a;
+}
+
+.prose-article h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: #0f172a;
+}
+
+.prose-article p {
+    margin-bottom: 1.25rem;
+}
+
+.prose-article a {
+    color: var(--color-primary-600);
+    text-decoration: underline;
+}
+
+.prose-article a:hover {
+    color: var(--color-primary-800);
+}
+
+.prose-article ul, .prose-article ol {
+    margin-bottom: 1.25rem;
+    padding-left: 1.5rem;
+}
+
+.prose-article ul {
+    list-style-type: disc;
+}
+
+.prose-article ol {
+    list-style-type: decimal;
+}
+
+.prose-article li {
+    margin-bottom: 0.5rem;
+}
+
+.prose-article img {
+    border-radius: 0.5rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.prose-article blockquote {
+    border-left: 4px solid var(--color-primary-200);
+    padding-left: 1rem;
+    font-style: italic;
+    color: #64748b;
+    margin-bottom: 1.25rem;
+}
+
+.prose-article table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.25rem;
+}
+
+.prose-article th, .prose-article td {
+    border: 1px solid #e2e8f0;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+.prose-article th {
+    background-color: #f8fafc;
+    font-weight: 600;
 }

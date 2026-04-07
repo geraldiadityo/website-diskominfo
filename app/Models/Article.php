@@ -6,6 +6,7 @@ use App\Enums\ArticleStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 class Article extends Model
@@ -21,16 +22,16 @@ class Article extends Model
         'status',
         'seo_title',
         'seo_description',
-        'published_at',
-        'views'
+        'publish_at',
+        'views',
     ];
 
     protected $guarded = [];
 
     protected $casts = [
         'status' => ArticleStatus::class,
-        'published_at' => 'datetime',
-        'views' => 'integer'
+        'publish_at' => 'datetime',
+        'views' => 'integer',
     ];
 
     public function author(): BelongsTo
@@ -48,8 +49,14 @@ class Article extends Model
         return $this->belongsToMany(Tag::class, 'article_tags');
     }
 
-    protected static function booted()
+    protected static function booted(): void
     {
+        static::saving(function (Article $article) {
+            if ($article->isDirty('status') && $article->status === ArticleStatus::PUBLISH && ! $article->publish_at) {
+                $article->publish_at = Carbon::now();
+            }
+        });
+
         static::deleting(function (Article $article) {
             if ($article->featured_image && Storage::disk('public')->exists($article->featured_image)) {
                 Storage::disk('public')->delete($article->featured_image);
