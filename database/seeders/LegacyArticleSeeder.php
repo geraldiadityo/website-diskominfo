@@ -22,7 +22,7 @@ class LegacyArticleSeeder extends Seeder
     public function run(): void
     {
         //
-        $sqlPath = database_path('seeders/data/sql_diskominfo_baru.sql');
+        $sqlPath = database_path('seeders/data/sql_diskominfo_baru2.sql');
         if (!File::exists($sqlPath)) {
             $this->command->error("File SQl tidak Di temukan di: {$sqlPath}");
             return;
