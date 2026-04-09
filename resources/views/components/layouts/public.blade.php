@@ -14,6 +14,18 @@
         <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     @endif
 
+    {{-- Open Graph Meta Tags --}}
+    <meta property="og:title" content="{{ $title ?? 'Diskominfo' }} — {{ $siteName ?? 'Diskominfo' }}">
+    <meta property="og:description" content="{{ $description ?? $siteDescription ?? 'Portal resmi Dinas Komunikasi dan Informatika - Mewujudkan Transformasi Digital Daerah' }}">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:type" content="website">
+    
+    @if(isset($ogImage) && $ogImage)
+        <meta property="og:image" content="{{ $ogImage }}">
+    @elseif(isset($siteLogo) && $siteLogo)
+        <meta property="og:image" content="{{ url('storage/' . $siteLogo) }}">
+    @endif
+
     {{-- Fonts --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
