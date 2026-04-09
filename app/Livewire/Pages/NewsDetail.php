@@ -31,7 +31,7 @@ class NewsDetail extends Component
         ])->layout('components.layouts.public', [
             'title' => $this->article->seo_title ?? $this->article->title,
             'description' => $this->article->seo_description ?? Str::limit(strip_tags($this->article->content), 160),
-            'ogImage' => $this->article->featured_image ? url(\Illuminate\Support\Facades\Storage::url($this->article->featured_image)) : null,
+            'ogImage' => $this->article->featured_image ? asset('storage/' . $this->article->featured_image) : null,
         ]);
     }
 }

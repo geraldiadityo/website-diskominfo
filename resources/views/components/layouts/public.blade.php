@@ -21,9 +21,13 @@
     <meta property="og:type" content="website">
     
     @if(isset($ogImage) && $ogImage)
-        <meta property="og:image" content="{{ $ogImage }}">
+        <meta property="og:image" itemprop="image" content="{{ $ogImage }}">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:image" content="{{ $ogImage }}">
     @elseif(isset($siteLogo) && $siteLogo)
-        <meta property="og:image" content="{{ url('storage/' . $siteLogo) }}">
+        <meta property="og:image" itemprop="image" content="{{ url('storage/' . $siteLogo) }}">
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:image" content="{{ url('storage/' . $siteLogo) }}">
     @endif
 
     {{-- Fonts --}}
