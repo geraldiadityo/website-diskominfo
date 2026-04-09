@@ -3,9 +3,16 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="{{ $description ?? 'Portal resmi Dinas Komunikasi dan Informatika - Mewujudkan Transformasi Digital Daerah' }}">
+    <meta name="description" content="{{ $description ?? $siteDescription ?? 'Portal resmi Dinas Komunikasi dan Informatika - Mewujudkan Transformasi Digital Daerah' }}">
 
     <title>{{ $title ?? 'Diskominfo' }} — {{ $siteName ?? 'Diskominfo' }}</title>
+
+    {{-- Favicon --}}
+    @if(isset($siteFavicon) && $siteFavicon)
+        <link rel="icon" href="{{ asset('storage/' . $siteFavicon) }}">
+    @else
+        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    @endif
 
     {{-- Fonts --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -33,6 +33,16 @@ class SiteSettingRepository implements SiteSettingRepositoryInterface
         return $this->get('site_logo');
     }
 
+    public function getFavicon(): ?string
+    {
+        return $this->get('site_favicon') ?: $this->get('site_logo');
+    }
+
+    public function getDescription(): string
+    {
+        return $this->get('site_description', 'Portal resmi Dinas Komunikasi dan Informatika - Mewujudkan Transformasi Digital Daerah');
+    }
+
     public function getContact(): array
     {
         return [
@@ -40,6 +50,17 @@ class SiteSettingRepository implements SiteSettingRepositoryInterface
             'phone' => $this->get('contact_phone', '(021) 1234-5678'),
             'address' => $this->get('contact_address', ''),
         ];
+    }
+
+    public function getOperationalHours(): array
+    {
+        $hours = $this->get('operational_hours');
+
+        if (is_string($hours)) {
+            $hours = json_decode($hours, true);
+        }
+
+        return is_array($hours) ? $hours : [];
     }
 
     public function getSocial(): array

@@ -4,10 +4,13 @@ namespace App\Filament\Pages;
 
 use App\Models\SiteSetting;
 use BackedEnum;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
@@ -15,6 +18,7 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Storage;
 use UnitEnum;
 
 class ManageSettings extends Page
@@ -35,7 +39,11 @@ class ManageSettings extends Page
 
     public function mount(): void
     {
-        $setting = SiteSetting::pluck('value', 'key')->toArray();
+        $setting = SiteSetting::pluck('value', 'key')->map(function ($value) {
+            $decoded = json_decode($value, true);
+
+            return json_last_error() === JSON_ERROR_NONE && is_array($decoded) ? $decoded : $value;
+        })->toArray();
         $this->form->fill($setting);
     }
 
@@ -105,6 +113,22 @@ class ManageSettings extends Page
                                         Textarea::make('contact_address')
                                             ->label('Alamat Lengkap')
                                             ->columnSpanFull(),
+                                        Repeater::make('operational_hours')
+                                            ->label('Jam Operasional')
+                                            ->schema([
+                                                TextInput::make('day')
+                                                    ->label('Hari')
+                                                    ->placeholder('Senin - Kamis')
+                                                    ->required(),
+                                                TextInput::make('time')
+                                                    ->label('Jam')
+                                                    ->placeholder('07:30 - 16:00')
+                                                    ->required(),
+                                            ])
+                                            ->columns(2)
+                                            ->columnSpanFull()
+                                            ->defaultItems(0)
+                                            ->addActionLabel('Tambah Jam Operasional'),
                                     ])->columns(2),
                             ]),
                         Tab::make('Social Media')
@@ -194,6 +218,27 @@ class ManageSettings extends Page
                                             ->placeholder('Tentang Diskominfo'),
                                     ])->columns(2),
                             ]),
+                        Tab::make('Pop Up')
+                            ->icon(Heroicon::Megaphone)
+                            ->schema([
+                                Section::make('Pengaturan Pop-up Beranda')
+                                    ->schema([
+                                        Toggle::make('popup_active')
+                                            ->label('Aktifkan Pop up')
+                                            ->default(false),
+                                        DateTimePicker::make('popup_end_date')
+                                            ->label('Batas Waktu Tampil (expired)'),
+                                        FileUpload::make('popup_image')
+                                            ->label('Gambar pop-up')
+                                            ->image()
+                                            ->disk('public')
+                                            ->directory('settings')
+                                            ->preserveFilenames(),
+                                        TextInput::make('popup_url')
+                                            ->label('Url Tujuan (Optional)')
+                                            ->url(),
+                                    ])->columns(2),
+                            ])
                     ]),
             ]);
     }
@@ -224,6 +269,7 @@ class ManageSettings extends Page
             'contact_email' => 'contact',
             'contact_phone' => 'contact',
             'contact_address' => 'contact',
+            'operational_hours' => 'contact',
             'social_facebook' => 'social',
             'social_instagram' => 'social',
             'leader_profile_subtitle' => 'general',
@@ -233,7 +279,20 @@ class ManageSettings extends Page
             'misi' => 'profile',
             'sejarah' => 'profile',
             'tupoksi' => 'profile',
+            'popup_active' => 'popup',
+            'popup_image' => 'popup',
+            'popup_end_date' => 'popup',
+            'popup_url' => 'popup',
         ];
+
+        $oldImage = SiteSetting::getSetting('popup_image');
+        $newImage = $state['popup_image'] ?? null;
+
+        if ($oldImage && $oldImage !== $newImage) {
+            if (Storage::disk('public')->exists($oldImage)) {
+                Storage::disk('public')->delete($oldImage);
+            }
+        }
 
         foreach ($state as $key => $value) {
             SiteSetting::UpdateOrCreate(

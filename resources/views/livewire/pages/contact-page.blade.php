@@ -112,18 +112,27 @@
                 <div class="bg-slate-50 rounded-2xl p-6">
                     <h3 class="font-bold text-slate-900 mb-4">Jam Operasional</h3>
                     <div class="space-y-2 text-sm text-slate-600">
-                        <div class="flex justify-between">
-                            <span>Senin - Kamis</span>
-                            <span class="font-medium text-slate-800">07:30 – 16:00</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Jumat</span>
-                            <span class="font-medium text-slate-800">07:30 – 16:30</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Sabtu - Minggu</span>
-                            <span class="font-medium text-red-500">Tutup</span>
-                        </div>
+                        @if(empty($operationalHours))
+                            <div class="flex justify-between">
+                                <span>Senin - Kamis</span>
+                                <span class="font-medium text-slate-800">07:30 – 16:00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Jumat</span>
+                                <span class="font-medium text-slate-800">07:30 – 16:30</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Sabtu - Minggu</span>
+                                <span class="font-medium text-red-500">Tutup</span>
+                            </div>
+                        @else
+                            @foreach($operationalHours as $hour)
+                                <div class="flex justify-between">
+                                    <span>{{ $hour['day'] ?? '' }}</span>
+                                    <span class="font-medium {{ strtolower($hour['time'] ?? '') == 'tutup' ? 'text-red-500' : 'text-slate-800' }}">{{ $hour['time'] ?? '' }}</span>
+                                </div>
+                            @endforeach
+                        @endif
                     </div>
                 </div>
             </div>

@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Models\SiteSetting;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -27,7 +28,10 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->brandName('Admin Website')
+            ->brandName(fn () => SiteSetting::getSetting('site_name') ?? 'Admin Website')
+            ->favicon(fn () => SiteSetting::getSetting('site_favicon') ?? SiteSetting::getSetting('site_logo') ? asset('storage/'.(SiteSetting::getSetting('site_favicon') ?? SiteSetting::getSetting('site_logo'))) : asset('favicon.ico'))
+            ->brandLogo(fn () => SiteSetting::getSetting('site_logo') ? asset('storage/'.SiteSetting::getSetting('site_logo')) : null)
+            ->brandLogoHeight('2.5rem')
             ->login()
             ->colors([
                 'primary' => Color::Amber,

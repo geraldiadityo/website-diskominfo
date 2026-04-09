@@ -20,9 +20,12 @@ class SiteSettingComposer
         $view->with([
             'siteName' => $this->settings->getSiteName(),
             'siteLogo' => $this->settings->getLogo(),
+            'siteFavicon' => $this->settings->getFavicon(),
+            'siteDescription' => $this->settings->getDescription(),
             'contactEmail' => $contact['email'],
             'contactPhone' => $contact['phone'],
             'contactAddress' => $contact['address'],
+            'operationalHours' => $this->settings->getOperationalHours(),
             'socialFacebook' => $social['facebook'],
             'socialInstagram' => $social['instagram'],
             'jumbotron' => $jumbotron,

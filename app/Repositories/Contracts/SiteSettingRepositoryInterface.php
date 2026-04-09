@@ -16,10 +16,19 @@ interface SiteSettingRepositoryInterface
 
     public function getLogo(): ?string;
 
+    public function getFavicon(): ?string;
+
+    public function getDescription(): string;
+
     /**
      * @return array{email: string, phone: string, address: string}
      */
     public function getContact(): array;
+
+    /**
+     * @return array<int, array{day: string, time: string}>
+     */
+    public function getOperationalHours(): array;
 
     /**
      * @return array{facebook: ?string, instagram: ?string}
