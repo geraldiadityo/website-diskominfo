@@ -216,6 +216,12 @@ class ManageSettings extends Page
                                         TextInput::make('jumbotron_profil_subtitle')
                                             ->label('Subtitle — Halaman Profil')
                                             ->placeholder('Tentang Diskominfo'),
+                                        TextInput::make('jumbotron_pengumuman_title')
+                                            ->label('Judul — Halaman Pengumuman')
+                                            ->placeholder('Pengumuman'),
+                                        TextInput::make('jumbotron_pengumuman_subtitle')
+                                            ->label('Subtitle — Halaman Pengumuman')
+                                            ->placeholder('Informasi Terkini'),
                                     ])->columns(2),
                             ]),
                         Tab::make('Pop Up')
@@ -279,6 +285,8 @@ class ManageSettings extends Page
             'misi' => 'profile',
             'sejarah' => 'profile',
             'tupoksi' => 'profile',
+            'jumbotron_pengumuman_title' => 'jumbotron',
+            'jumbotron_pengumuman_subtitle' => 'jumbotron',
             'popup_active' => 'popup',
             'popup_image' => 'popup',
             'popup_end_date' => 'popup',

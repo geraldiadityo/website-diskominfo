@@ -66,7 +66,7 @@
                         'icon' => 'campaign',
                         'label' => 'Pengumuman',
                         'color' => 'bg-amber-500',
-                        'url' => '#',
+                        'url' => '/pengumuman',
                         'external' => false,
                     ],
                     [
@@ -234,7 +234,8 @@
     {{-- Pop-up Section (Pure Livewire) --}}
     @if ($showPopup)
         {{-- Gunakan style z-index yang sangat tinggi agar menutupi elemen lain terlepas dari kompilasi Tailwind --}}
-        <div class="fixed inset-0 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md" style="z-index: 99999;">
+        <div class="fixed inset-0 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md"
+            style="z-index: 99999;">
 
             {{-- Wrapper Gambar --}}
             <div class="relative w-auto max-w-[90vw] md:max-w-lg max-h-[85vh] animate-fade-in flex justify-center">

@@ -18,6 +18,7 @@
                 <x-navbar-link href="/profil/struktur-organisasi" :active="request()->is('profil/struktur-organisasi')">Struktur</x-navbar-link>
                 <x-navbar-link href="/berita" :active="request()->is('berita*')">Berita</x-navbar-link>
                 <x-navbar-link href="/publikasi" :active="request()->is('publikasi*')">Publikasi</x-navbar-link>
+                <x-navbar-link href="/pengumuman" :active="request()->is('pengumuman')">Pengumuman</x-navbar-link>
                 <x-navbar-link href="/kontak" :active="request()->is('kontak')">Kontak</x-navbar-link>
             </div>
 
@@ -37,6 +38,7 @@
             <x-navbar-link-mobile href="/profil/struktur-organisasi" :active="request()->is('profil/struktur-organisasi')">Struktur Organisasi</x-navbar-link-mobile>
             <x-navbar-link-mobile href="/berita" :active="request()->is('berita*')">Berita</x-navbar-link-mobile>
             <x-navbar-link-mobile href="/publikasi" :active="request()->is('publikasi*')">Publikasi</x-navbar-link-mobile>
+            <x-navbar-link-mobile href="/pengumuman" :active="request()->is('pengumuman')">Pengumuman</x-navbar-link-mobile>
             <x-navbar-link-mobile href="/kontak" :active="request()->is('kontak')">Kontak</x-navbar-link-mobile>
         </div>
     </div>

@@ -88,6 +88,8 @@ class SiteSettingRepository implements SiteSettingRepositoryInterface
             'jumbotron_organisasi_subtitle' => 'Tentang Kami',
             'jumbotron_profil_title' => 'Profil & Visi Misi',
             'jumbotron_profil_subtitle' => 'Tentang Diskominfo',
+            'jumbotron_pengumuman_title' => 'Pengumuman',
+            'jumbotron_pengumuman_subtitle' => 'Informasi Terkini',
         ]);
     }
 }
