@@ -23,6 +23,13 @@ class AnnouncementForm
                             ->required()
                             ->maxLength(255),
 
+                        TextInput::make('url')
+                            ->label('URL Redirect')
+                            ->url()
+                            ->nullable()
+                            ->maxLength(255)
+                            ->helperText('Opsional. Jika diisi, pengunjung akan diarahkan ke URL ini saat mengklik pengumuman.'),
+
                         Select::make('file_type')
                             ->label('Tipe File')
                             ->options([

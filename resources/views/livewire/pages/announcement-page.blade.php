@@ -20,7 +20,13 @@
                                 {{ $announcement->isImage() ? 'image' : 'picture_as_pdf' }}
                             </span>
                             <h2 class="font-bold text-slate-900 group-hover:text-primary-700 transition-colors text-lg">
-                                {{ $announcement->title }}
+                                @if($announcement->url)
+                                    <a href="{{ $announcement->url }}" target="_blank" class="hover:underline">
+                                        {{ $announcement->title }}
+                                    </a>
+                                @else
+                                    {{ $announcement->title }}
+                                @endif
                             </h2>
                         </div>
                     </div>
@@ -29,7 +35,7 @@
                     <div class="p-4">
                         @if($announcement->isImage())
                             {{-- Image Display --}}
-                            <a href="{{ asset('storage/' . $announcement->file_path) }}" target="_blank" class="block">
+                            <a href="{{ $announcement->url ?: asset('storage/' . $announcement->file_path) }}" target="_blank" class="block">
                                 <img
                                     src="{{ asset('storage/' . $announcement->file_path) }}"
                                     alt="{{ $announcement->title }}"
@@ -47,12 +53,22 @@
                                     loading="lazy"
                                 ></iframe>
                             </div>
-                            <a href="{{ asset('storage/' . $announcement->file_path) }}"
-                               target="_blank"
-                               class="inline-flex items-center gap-1.5 mt-3 text-sm text-primary-600 hover:text-primary-800 font-medium transition-colors">
-                                <span class="material-icons-outlined text-base">open_in_new</span>
-                                Buka PDF di tab baru
-                            </a>
+                            <div class="flex items-center gap-4 mt-3">
+                                <a href="{{ asset('storage/' . $announcement->file_path) }}"
+                                   target="_blank"
+                                   class="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-800 font-medium transition-colors">
+                                    <span class="material-icons-outlined text-base">open_in_new</span>
+                                    Buka PDF di tab baru
+                                </a>
+                                @if($announcement->url)
+                                    <a href="{{ $announcement->url }}"
+                                       target="_blank"
+                                       class="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-800 font-medium transition-colors">
+                                        <span class="material-icons-outlined text-base">link</span>
+                                        Kunjungi Tautan
+                                    </a>
+                                @endif
+                            </div>
                         @endif
                     </div>
 

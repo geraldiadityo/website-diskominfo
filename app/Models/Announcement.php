@@ -10,6 +10,7 @@ class Announcement extends Model
 {
     protected $fillable = [
         'title',
+        'url',
         'file_path',
         'file_type',
         'is_active',
