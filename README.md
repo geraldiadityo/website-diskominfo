@@ -32,8 +32,16 @@ sudo git clone nama-repository.git
 1. masuk ke directory dari github dan copy .env.example ke .env (ubah sesuai kebutuhan)
 2. jalankan perintah build no dev
 
+download terlebih dahulu composer phar nya
+
 ```bash
-sudo /www/server/php/84/bin/php /tmp/composer.phar install --optimize-autoloader --no-dev
+sudo /www/server/php/84/bin/php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+sudo /www/server/php/84/bin/php composer-setup.php
+sudo /www/server/php/84/bin/php -r "unlink('composer-setup.php');"
+```
+
+```bash
+sudo /www/server/php/84/bin/php composer.phar install --optimize-autoloader --no-dev
 ```
 
 3. eksekusi artisan
@@ -43,6 +51,7 @@ sudo /www/server/php/84/bin/php artisan migrate --force
 sudo /www/server/php/84/bin/php artisan db:seed --class=AdminSeeder --force
 sudo /www/server/php/84/bin/php artisan key:generate
 sudo /www/server/php/84/bin/php artisan storage:link
+sudo /www/server/php/84/bin/php artisan livewire:publish --assets (optional)
 sudo /www/server/php/84/bin/php artisan optimize:clear
 sudo /www/server/php/84/bin/php artisan optimize
 sudo /www/server/php/84/bin/php artisan filament:optimize
