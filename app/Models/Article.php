@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ArticleStatus;
+use App\Traits\ClearsCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Storage;
 
 class Article extends Model
 {
+    use ClearsCache;
+    public string $cacheTag = 'articles';
     //
     protected $fillable = [
         'title',
