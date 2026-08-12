@@ -2,8 +2,11 @@
     {{-- Page Header --}}
     <section class="bg-gradient-to-br from-primary-600 to-primary-800 py-12 lg:py-16 hero-shimmer relative">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <p class="text-primary-200 font-medium text-sm tracking-wider uppercase mb-2 animate-slide-in-left delay-100">{{ $jumbotron['jumbotron_berita_subtitle'] }}</p>
-            <h1 class="text-3xl lg:text-4xl font-bold text-white animate-slide-in-left delay-200">{{ $jumbotron['jumbotron_berita_title'] }}</h1>
+            <p
+                class="text-primary-200 font-medium text-sm tracking-wider uppercase mb-2 animate-slide-in-left delay-100">
+                {{ $jumbotron['jumbotron_berita_subtitle'] }}</p>
+            <h1 class="text-3xl lg:text-4xl font-bold text-white animate-slide-in-left delay-200">
+                {{ $jumbotron['jumbotron_berita_title'] }}</h1>
         </div>
     </section>
 
@@ -41,6 +44,7 @@
                     <div class="aspect-video overflow-hidden">
                         @if ($article->featured_image)
                             <img src="{{ Storage::url($article->featured_image) }}" alt="{{ $article->title }}"
+                                loading="lazy" decoding="async"
                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                         @else
                             <div

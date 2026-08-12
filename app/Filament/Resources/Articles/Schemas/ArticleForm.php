@@ -45,6 +45,10 @@ class ArticleForm
                             ->schema([
                                 FileUpload::make('featured_image')
                                     ->image()
+                                    ->automaticallyResizeImagesToWidth('1200')
+                                    ->automaticallyResizeImagesToWidth('675')
+                                    ->automaticallyResizeImagesMode('cover')
+                                    ->optimize('webp')
                                     ->disk('public')
                                     ->directory('articles')
                                     ->preserveFilenames()
