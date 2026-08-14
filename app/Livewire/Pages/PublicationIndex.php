@@ -42,7 +42,7 @@ class PublicationIndex extends Component
         }])->get();
 
         return view('livewire.pages.publication-index', [
-            'publications' => $publicationRepo->getPublishedPaginated($this->search, $this->tipeSlug, perPage: 4),
+            'publications' => $publicationRepo->getPublishedPaginated($this->search, $this->tipeSlug, perPage: 4, page: $this->getPage()),
             'tipes' => $tipes,
         ])->layout('components.layouts.public', ['title' => 'Publikasi & Dokumen']);
     }

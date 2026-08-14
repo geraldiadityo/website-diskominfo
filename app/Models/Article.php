@@ -3,14 +3,18 @@
 namespace App\Models;
 
 use App\Enums\ArticleStatus;
+use App\Traits\ClearsCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Image\Image;
 
 class Article extends Model
 {
+    use ClearsCache;
+    public string $cacheTag = 'articles';
     //
     protected $fillable = [
         'title',
@@ -54,6 +58,28 @@ class Article extends Model
         static::saving(function (Article $article) {
             if ($article->isDirty('status') && $article->status === ArticleStatus::PUBLISH && ! $article->publish_at) {
                 $article->publish_at = Carbon::now();
+            }
+
+            if ($article->isDirty('featured_image') && $article->featured_image) {
+                $disk = Storage::disk('public');
+                $originalPath = $article->featured_image;
+
+                if ($disk->exists($originalPath)) {
+                    $extention = pathinfo($originalPath, PATHINFO_EXTENSION);
+
+                    if (strtolower($extention) !== 'webp') {
+                        $newPath = str_replace('.' . $extention, '.webp', $originalPath);
+
+                        Image::load($disk->path($originalPath))
+                            ->format('webp')
+                            ->quality(60)
+                            ->save($disk->path($newPath));
+
+                        $disk->delete($originalPath);
+
+                        $article->featured_image = $newPath;
+                    }
+                }
             }
         });
 

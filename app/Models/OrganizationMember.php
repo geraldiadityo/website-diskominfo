@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use App\Traits\ClearsCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Image\Image;
 
 class OrganizationMember extends Model
 {
+    use ClearsCache;
+    public string $cacheTag = 'organizations';
     //
     protected $fillable = [
         'name',
@@ -48,6 +52,30 @@ class OrganizationMember extends Model
 
     protected static function booted()
     {
+        static::saving(function (OrganizationMember $data) {
+            if ($data->isDirty('photo') && $data->photo) {
+                $disk = Storage::disk('public');
+                $originalPath = $data->photo;
+
+                if ($disk->exists($originalPath)) {
+                    $extension = pathinfo($originalPath, PATHINFO_EXTENSION);
+
+                    if (strtolower($extension) !== 'webp') {
+                        $newPath = str_replace('.' . $extension, '.webp', $originalPath);
+
+                        Image::load($disk->path($originalPath))
+                            ->format('webp')
+                            ->quality(70)
+                            ->save($disk->path($newPath));
+
+                        $disk->delete($originalPath);
+                        $data->photo = $newPath;
+                    }
+                }
+            }
+        });
+
+
         static::deleting(function (OrganizationMember $data) {
             if ($data->photo && Storage::disk('public')->exists($data->photo)) {
                 Storage::disk('public')->delete($data->photo);

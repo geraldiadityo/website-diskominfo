@@ -72,6 +72,9 @@ class OrganizationMemberForm
                         FileUpload::make('photo')
                             ->label('Photo profile')
                             ->image()
+                            ->automaticallyResizeImagesToWidth('600')
+                            ->automaticallyResizeImagesMode('cover')
+                            ->optimize('webp')
                             ->disk('public')
                             ->directory('organization-photos'),
 

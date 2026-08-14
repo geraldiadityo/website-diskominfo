@@ -13,7 +13,7 @@ interface ArticleRepositoryInterface
      */
     public function getPublished(int $limit = 3): Collection;
 
-    public function getPublishedPaginated(string $search = '', string $categorySlug = '', int $perPage = 9): LengthAwarePaginator;
+    public function getPublishedPaginated(string $search = '', string $categorySlug = '', int $perPage = 9, int $page = 1): LengthAwarePaginator;
 
     /**
      * @return Collection<int, Article>

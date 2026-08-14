@@ -146,6 +146,7 @@
                         <div class="aspect-video overflow-hidden">
                             @if ($article->featured_image)
                                 <img src="{{ Storage::url($article->featured_image) }}" alt="{{ $article->title }}"
+                                    loading="lazy" decoding="async"
                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                             @else
                                 <div
