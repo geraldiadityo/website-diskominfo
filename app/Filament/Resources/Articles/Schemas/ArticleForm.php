@@ -48,7 +48,6 @@ class ArticleForm
                                     ->automaticallyResizeImagesToWidth('1200')
                                     ->automaticallyResizeImagesToWidth('675')
                                     ->automaticallyResizeImagesMode('cover')
-                                    ->optimize('webp')
                                     ->disk('public')
                                     ->directory('articles')
                                     ->preserveFilenames()

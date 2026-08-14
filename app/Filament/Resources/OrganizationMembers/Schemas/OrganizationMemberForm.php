@@ -74,7 +74,6 @@ class OrganizationMemberForm
                             ->image()
                             ->automaticallyResizeImagesToWidth('600')
                             ->automaticallyResizeImagesMode('cover')
-                            ->optimize('webp')
                             ->disk('public')
                             ->directory('organization-photos'),
 
