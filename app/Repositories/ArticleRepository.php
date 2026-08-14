@@ -8,6 +8,7 @@ use App\Repositories\Contracts\ArticleRepositoryInterface;
 use App\Traits\CacheableRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class ArticleRepository implements ArticleRepositoryInterface
 {
@@ -54,34 +55,18 @@ class ArticleRepository implements ArticleRepositoryInterface
     public function getPublishedPaginated(string $search = '', string $categorySlug = '', int $perPage = 9, int $page = 1): LengthAwarePaginator
     {
         // $page = request()->get('page', 1);
-        $cacheKey = "articles_pub_page_{$page}_limit_{$perPage}";
-        if ($search) {
-            $cacheKey .= "_search_" . md5($search);
+        if (!empty($search)) {
+            return $this->buildPublishedQuery($search, $categorySlug)->paginate($perPage, ['*'], 'page', $page);
         }
+
+        $cacheKey = "articles_pub_page_{$page}_limit_{$perPage}";
 
         if ($categorySlug) {
             $cacheKey .= "_cat_" . $categorySlug;
         }
 
-        return $this->executeWithCache($cacheKey, function () use ($search, $categorySlug, $perPage, $page) {
-            return Article::query()
-                ->where('status', ArticleStatus::PUBLISH)
-                ->whereNotNull('publish_at')
-                ->where('publish_at', '<=', now())
-                ->when($search, function ($query) use ($search) {
-                    $query->where(function ($q) use ($search) {
-                        $q->where('title', 'like', '%' . $search . '%')
-                            ->orWhere('content', 'like', '%' . $search . '%');
-                    });
-                })
-                ->when($categorySlug, function ($query) use ($categorySlug) {
-                    $query->whereHas('category', function ($q) use ($categorySlug) {
-                        $q->where('slug', $categorySlug);
-                    });
-                })
-                ->with(['author', 'category'])
-                ->latest('publish_at')
-                ->paginate($perPage, page: $page);
+        return Cache::tags([$this->cacheTag])->remember($cacheKey, 600, function () use ($categorySlug, $perPage, $page) {
+            return $this->buildPublishedQuery('', $categorySlug)->paginate($perPage, ['*'], 'page', $page);
         });
     }
 
