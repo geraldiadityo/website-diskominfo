@@ -38,7 +38,7 @@ class NewsIndex extends Component
         }])->get();
 
         return view('livewire.pages.news-index', [
-            'articles' => $articleRepo->getPublishedPaginated($this->search, $this->categorySlug),
+            'articles' => $articleRepo->getPublishedPaginated($this->search, $this->categorySlug, 9, $this->getPage()),
             'categories' => $categories,
         ])->layout('components.layouts.public', ['title' => 'Berita Terbaru']);
     }

@@ -15,6 +15,27 @@ class ArticleRepository implements ArticleRepositoryInterface
     protected string $cacheTag = 'articles';
     protected int $cacheTtl = 3600;
 
+    private function buildPublishedQuery(string $search = '', string $categorySlug = '')
+    {
+        return Article::query()
+            ->where('status', ArticleStatus::PUBLISH)
+            ->whereNotNull('publish_at')
+            ->where('publish_at', '<=', now())
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', '%' . $search . '%')
+                        ->orWhere('content', 'like', '%' . $search . '%');
+                });
+            })
+            ->when($categorySlug, function ($query) use ($categorySlug) {
+                $query->whereHas('category', function ($q) use ($categorySlug) {
+                    $q->where('slug', $categorySlug);
+                });
+            })
+            ->with(['author', 'category'])
+            ->latest('publish_at');
+    }
+
     public function getPublished(int $limit = 3): Collection
     {
         $cacheKey = "articles_latest_{$limit}";
@@ -30,9 +51,9 @@ class ArticleRepository implements ArticleRepositoryInterface
         });
     }
 
-    public function getPublishedPaginated(string $search = '', string $categorySlug = '', int $perPage = 9): LengthAwarePaginator
+    public function getPublishedPaginated(string $search = '', string $categorySlug = '', int $perPage = 9, int $page = 1): LengthAwarePaginator
     {
-        $page = request()->get('page', 1);
+        // $page = request()->get('page', 1);
         $cacheKey = "articles_pub_page_{$page}_limit_{$perPage}";
         if ($search) {
             $cacheKey .= "_search_" . md5($search);
@@ -42,7 +63,7 @@ class ArticleRepository implements ArticleRepositoryInterface
             $cacheKey .= "_cat_" . $categorySlug;
         }
 
-        return $this->executeWithCache($cacheKey, function () use ($search, $categorySlug, $perPage) {
+        return $this->executeWithCache($cacheKey, function () use ($search, $categorySlug, $perPage, $page) {
             return Article::query()
                 ->where('status', ArticleStatus::PUBLISH)
                 ->whereNotNull('publish_at')
@@ -60,7 +81,7 @@ class ArticleRepository implements ArticleRepositoryInterface
                 })
                 ->with(['author', 'category'])
                 ->latest('publish_at')
-                ->paginate($perPage);
+                ->paginate($perPage, page: $page);
         });
     }
 

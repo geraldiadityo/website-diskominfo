@@ -16,7 +16,8 @@ class SiteSetting extends Model
 
     public static function getSetting(string $key, $default = null)
     {
-        return Cache::rememberForever("site_setting_{$key}", function () use ($key, $default) {
+        $ttl = 86400;
+        return Cache::remember("site_setting_{$key}", $ttl, function () use ($key, $default) {
             return self::where('key', $key)->value('value') ?? $default;
         });
     }
